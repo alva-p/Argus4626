@@ -1,153 +1,128 @@
-# Argus4626
+<div align="center">
+  <img src="frontend/public/brand/argus4626-horizontal.png" alt="Argus4626" width="560" />
+  <p><strong>Vault intelligence for ERC-4626</strong></p>
+  <p>See the vault before the risk sees you.</p>
+</div>
 
-### An open ERC-4626 vault watchdog powered by The Graph Market and Subgraph Studio
+<p align="center">
+  <a href="https://ethglobal.com/events/ethonline2026">ETHOnline 2026</a>
+  &nbsp;·&nbsp;
+  <a href="https://thegraph.market/">The Graph Market</a>
+  &nbsp;·&nbsp;
+  <a href="https://thegraph.com/studio/">Subgraph Studio</a>
+</p>
 
-Argus4626 turns the common ERC-4626 interface into a reusable observability and security pipeline. It watches heterogeneous vaults, normalizes their activity, tracks state between blocks, and prepares the data for a GraphQL dashboard that explains suspicious behavior with on-chain evidence.
+Argus4626 is an open-source observability layer for ERC-4626 vaults. It turns a shared standard into a reusable pipeline for tracking vault activity, comparing share-price behavior, and surfacing suspicious on-chain movements with evidence.
 
-> **One standard. Many vaults. One monitoring pipeline.**
+> One standard. Many vaults. One monitoring pipeline.
 
-Argus is inspired by **Argos Panoptes**, the hundred-eyed giant from Greek mythology: a metaphor for watching many vaults at the same time.
+## The idea
 
-## Why this matters
+ERC-4626 standardizes how applications deposit and withdraw from tokenized vaults. It does not standardize how teams monitor accounting, performance, or risk.
 
-ERC-4626 standardized how applications interact with tokenized vaults through `deposit`, `mint`, `withdraw`, and `redeem`. It did not standardize how developers monitor performance, accounting, or risk.
+Argus4626 applies the same event and state pipeline to heterogeneous vaults from Morpho and Yearn. The dashboard presents the result as an operating view rather than a terminal log: a vault matrix, historical share-price trends, and an evidence-first incident radar.
 
-As a result, vault analytics are often fragmented across protocol-specific indexers and heuristics. Argus4626 uses the standard event surface as a common interface and applies the same pipeline to vaults from different protocols.
+## What the demo shows
 
-## What Argus does
+- Live Ethereum Mainnet data from three ERC-4626 vaults.
+- One normalized GraphQL model across Morpho and Yearn.
+- A stateful Rust Substreams watchdog processing block data.
+- Deterministic share-price tracking with integer arithmetic.
+- Donation/inflation and liquidity-drain invariant signals.
+- Alerts linked to the indexed block and transaction evidence.
 
-The current MVP:
+## Architecture
 
-- Decodes standard ERC-4626 `Deposit` and `Withdraw` events.
-- Observes ERC-20 transfers into and out of tracked vaults to detect direct asset movements.
-- Tracks observed assets and share supply with a stateful Substreams store.
-- Computes a deterministic share-price ratio without floating-point arithmetic.
-- Implements inflation/donation and liquidity-drain invariant checks.
-- Emits reusable `EntityChanges` through `graph_out` for Substreams consumers.
-- Provides a standard EVM Subgraph for Subgraph Studio with the same normalized vault model.
-
-The dashboard is the product layer: it turns this indexed data into a cross-protocol health matrix, historical charts, and an incident radar.
-
-## The demo in one minute
-
-```text
-Firehose block ──► Substreams package ──► The Graph Market
-                     │
-                     ├── stateful metrics
-                     ├── invariant watchdog
-                     └── reusable EntityChanges output
-
-Ethereum Mainnet ──► Standard EVM Subgraph ──► Subgraph Studio GraphQL
-                                              │
-                                              ▼
-                                      Argus dashboard
-                               cross-protocol health + evidence
+```mermaid
+flowchart LR
+    B[Ethereum Mainnet] --> S[Substreams in Rust]
+    S --> M[The Graph Market]
+    S --> W[Invariant watchdog]
+    B --> G[Standard EVM Subgraph]
+    G --> ST[Subgraph Studio]
+    M --> D[Argus dashboard]
+    ST --> D
+    W --> D
 ```
 
-The visual story is simple:
+The two Graph products have distinct roles:
+
+| Layer | Role |
+| --- | --- |
+| Substreams + The Graph Market | High-throughput block processing, stateful metrics, and reusable `EntityChanges` output. |
+| Standard EVM Subgraph + Subgraph Studio | Normalized GraphQL entities for the product UI and external consumers. |
+| Argus dashboard | A visual control plane for vault health, trends, and incidents. |
+
+## Security signals
+
+Argus compares state between blocks without floating-point arithmetic.
 
 ```text
-Before:  1,000 assets / 1,000 shares = 1.0000 share price
-Event:   assets move directly into the vault without new shares
-After:   1,114 assets / 1,000 shares = 1.1140 share price
-Argus:   critical anomaly — price jumped while supply stayed unchanged
+currentAssets × previousSupply × 10000
+>
+previousAssets × currentSupply × 10500
 ```
 
-The signal is reported as an anomaly compatible with a donation/inflation attack. It is not presented as definitive proof of an exploit.
+When share price rises by more than 5% while share supply remains unchanged, Argus emits a critical donation/inflation signal. Withdrawals above 35% of reconstructed pre-withdrawal liquidity within the rolling window emit a liquidity-drain warning.
 
-## Standards leverage
+These are monitoring signals, not definitive proof of an exploit. Every alert is intended to be investigated against its block and transaction.
 
-The same Rust module and the same GraphQL entity model are applied to vaults from multiple protocols:
+## Monitored vaults
 
-| Vault | Protocol | Network | Underlying asset |
+| Vault | Protocol | Network | Asset |
 | --- | --- | --- | --- |
 | Steakhouse USDC | Morpho MetaMorpho | Ethereum Mainnet | USDC |
 | Flagship ETH | Morpho MetaMorpho | Ethereum Mainnet | WETH |
 | yvUSDC | Yearn V3 | Ethereum Mainnet | USDC |
 
-There is no protocol-specific event decoder in the pipeline. The common ERC-4626 event signatures provide the reusable boundary; protocol metadata is only used to label the resulting entities.
+The same ERC-4626 event boundary is reused across all three vaults; only display metadata changes.
 
-## Architecture
+## Try the live data
 
-```mermaid
-flowchart TD
-    B[ Ethereum Mainnet / Firehose ] --> E[ map_events ]
-    E --> S[ store_vault_state ]
-    S --> O[ graph_out ]
-    O --> M[ The Graph Market ]
-    B --> G[ Standard EVM Subgraph ]
-    G --> ST[ Subgraph Studio ]
-    M --> D[ Argus Dashboard ]
-    ST --> D
-    S --> W[ Invariant Watchdog ]
-    W --> O
-```
-
-### Substreams core
-
-`map_events` is stateless and extracts normalized ERC-4626 activity from Firehose blocks. `store_vault_state` carries state across blocks so downstream modules can compare previous and current values.
-
-### Invariant watchdog
-
-Inflation/donation detection uses cross-multiplication instead of division:
+The current Subgraph Studio endpoint is:
 
 ```text
-currentAssets * previousSupply * 10000
->
-previousAssets * currentSupply * 10500
+https://api.studio.thegraph.com/query/1758674/argus-4626-ethereum-mainnet/0.1.2
 ```
 
-This represents a share-price increase above 5% while the share supply remains unchanged. Arithmetic is promoted to `U1024` so the comparison remains safe at the theoretical `uint256` boundary.
+Example query:
 
-Liquidity-drain detection uses the same integer-only approach for withdrawals exceeding 35% of the reconstructed pre-withdrawal liquidity.
-
-### Graph output
-
-`graph_out` emits the official `sf.substreams.sink.entity.v1.EntityChanges` protobuf shape for reusable Substreams consumers. The standard EVM Subgraph in Studio exposes:
-
-- `Vault`: protocol labels and latest observed state.
-- `VaultSnapshot`: block-level history for charting and forensic inspection.
-- `SecurityAlert`: evidence-backed inflation anomalies.
+```graphql
+{
+  vaults {
+    id
+    name
+    protocol
+    assetSymbol
+    sharePrice
+    totalAssets
+    lastUpdatedBlock
+  }
+}
+```
 
 ## Quickstart
 
 ### Requirements
 
-- Rust toolchain with `wasm32-unknown-unknown` installed.
+- Rust with `wasm32-unknown-unknown`.
 - Substreams CLI `v1.22.0` or newer.
-- `buf` for protobuf generation.
-- Node.js 22 or newer for Graph CLI validation.
+- `buf`.
+- Node.js 22 or newer.
 - A Substreams API token from [The Graph Market](https://thegraph.market/).
 
-### Build and test the Rust module
+### Build and test the pipeline
 
 ```bash
 cargo fmt --check
 cargo test
 cargo run
+substreams auth
+. ./.substreams.env
 substreams build substreams.yaml
 ```
 
-### Authenticate and run against live Ethereum data
-
-```bash
-substreams auth
-. ./.substreams.env
-
-substreams run \
-  -e mainnet.eth.streamingfast.io:443 \
-  argus4626-v0.1.0.spkg \
-  map_events \
-  -s <START_BLOCK> \
-  -t <STOP_BLOCK> \
-  -o jsonl
-```
-
-The `.substreams.env` file contains a secret JWT and must never be committed or exposed in frontend code.
-
-### Validate `graph_out`
-
-The package starts at block `18941135`. The following command verifies that the output is valid `EntityChanges` and creates the initial vault entities:
+Run the package against live Ethereum data:
 
 ```bash
 substreams run \
@@ -159,7 +134,7 @@ substreams run \
   -o jsonl
 ```
 
-### Validate the Subgraph manifest
+### Build the Subgraph
 
 ```bash
 npx --yes @graphprotocol/graph-cli@0.98.1 codegen subgraph/subgraph.yaml
@@ -168,8 +143,6 @@ npx --yes @graphprotocol/graph-cli@0.98.1 build subgraph/subgraph.yaml
 
 ### Run the dashboard
 
-The dashboard reads the live Subgraph Studio endpoint on the server side. Copy the example environment file, then start the local app:
-
 ```bash
 cd frontend
 cp .env.example .env.local
@@ -177,63 +150,36 @@ npm install
 npm run dev
 ```
 
-Open `http://localhost:3000`. The public-facing app uses its own Argus interface; the provider URL remains configuration rather than part of the user experience.
+Open `http://localhost:3000`. The endpoint is configured server-side and is not exposed as part of the product UI.
 
-## Repository layout
+## Repository
 
 ```text
-.
-├── abi/                         ERC-4626-compatible ABI input
-├── proto/                       Event and EntityChanges protobuf schemas
-├── src/
-│   ├── invariants.rs            Integer-only security checks
-│   ├── entity_changes.rs        Minimal EntityChanges helpers
-│   └── lib.rs                   Substreams map, store, and graph_out modules
-├── subgraph/
-│   ├── schema.graphql           Normalized vault and alert entities
-│   ├── src/mapping.ts           Standard EVM event mappings
-│   ├── package.json             Graph CLI and AssemblyScript dependencies
-│   └── subgraph.yaml            Subgraph Studio manifest
-├── frontend/
-│   ├── src/app/page.tsx          Vault observatory and incident radar
-│   ├── src/app/globals.css       Product visual system
-│   └── src/lib/graph.ts          Server-side GraphQL data access
-├── substreams.yaml              Package and module graph
-├── PLAN.md                      Hackathon execution plan
-└── PROJECT_CONTEXT.md           Technical handoff and decisions
+abi/                 ERC-4626-compatible ABI
+proto/               Protobuf schemas
+src/                 Substreams modules and invariant checks
+subgraph/            Studio schema, manifest, and mappings
+frontend/            Argus dashboard
+substreams.yaml      Package and module graph
+PLAN.md              Hackathon execution plan
+PROJECT_CONTEXT.md   Technical decisions and handoff
 ```
 
-## Project status
+## Current status
 
-| Area | Status |
-| --- | --- |
-| ERC-4626 event extraction | Implemented |
-| Stateful vault aggregation | Implemented |
-| Integer-only invariant core | Implemented and tested |
-| `graph_out` EntityChanges | Implemented and live-tested on the initial block |
-| Standard EVM Subgraph for Studio | Built successfully with Graph CLI |
-| Security alerts in the Substreams watchdog | Implemented and tested |
-| Dashboard UI | Implemented with live GraphQL data |
-| MCP/agent interface | Optional after the dashboard |
+- Rust Substreams package: built and tested.
+- `graph_out` EntityChanges: implemented and live-tested.
+- Standard EVM Subgraph: deployed to Subgraph Studio.
+- Dashboard: implemented with live GraphQL data.
+- Mainnet vault registry: Morpho and Yearn.
 
-## Known MVP boundaries
+## MVP boundary
 
-`observed_assets` is an explicit MVP proxy based on ERC-20 transfers involving the vault. It is not a complete replacement for `totalAssets()` when a vault allocates funds across external strategies. The first deployment therefore focuses on transparent telemetry and clearly labeled anomaly signals rather than claiming protocol-independent accounting perfection.
-
-Ethereum Mainnet is the first deployment target. Arbitrum will be added as a separate package/Subgraph deployment and unified at the frontend layer.
-
-## Hackathon objective
-
-Argus4626 is built for the ETHOnline 2026 **The Graph — Best Use of Composable or Standardized Graph Products** bounty. The intended proof is concrete:
-
-1. A reusable Rust Substreams module processes live blockchain data.
-2. A stateful store computes comparable vault metrics across protocols.
-3. A standard EVM Subgraph in Studio exposes the normalized GraphQL model.
-4. The dashboard makes the Substreams and Subgraph roles visible in one experience.
-5. Every incident links back to a block, metric change, and transaction.
+`observed_assets` is an explicit MVP proxy based on ERC-20 transfers involving each vault. It is not a universal replacement for `totalAssets()` when a vault allocates funds across external strategies. Argus therefore labels its signals as transparent telemetry and keeps the accounting limitation visible.
 
 ## Links
 
+- [ETHOnline 2026](https://ethglobal.com/events/ethonline2026)
 - [The Graph documentation](https://thegraph.com/docs/en/)
 - [The Graph Market](https://thegraph.market/)
 - [Substreams documentation](https://docs.substreams.dev/)
@@ -243,4 +189,4 @@ Argus4626 is built for the ETHOnline 2026 **The Graph — Best Use of Composable
 
 ## License
 
-This project is being built in public for ETHOnline 2026.
+Built in public for ETHOnline 2026.
