@@ -5,6 +5,7 @@ pub mod invariants;
 mod pb;
 
 use hex_literal::hex;
+use invariants::{detect_inflation, VaultState};
 use pb::contract::v1 as contract;
 use pb::sf::substreams::sink::entity::v1::{EntityChanges, Operation};
 use std::str::FromStr;
@@ -33,6 +34,14 @@ const TRACKED_VAULTS: [([u8; 20], [u8; 20]); 3] = [
 ];
 
 const INITIAL_BLOCK: u64 = 18_941_135;
+
+#[derive(Default)]
+struct StateTransition {
+    previous_assets: Option<String>,
+    current_assets: Option<String>,
+    previous_supply: Option<String>,
+    current_supply: Option<String>,
+}
 
 fn is_tracked(address: &[u8]) -> bool {
     TRACKED_VAULTS
@@ -106,6 +115,10 @@ fn share_price(assets: &str, supply: &str) -> String {
     let whole = &scaled / &scale;
     let fraction = (&scaled % &scale).to_str_radix(10);
     format!("{whole}.{:0>18}", fraction)
+}
+
+fn parse_u256(value: &str) -> primitive_types::U256 {
+    value.parse().unwrap_or_default()
 }
 
 #[substreams::handlers::map]
@@ -250,6 +263,7 @@ fn map_state_changes(
 #[substreams::handlers::map]
 fn graph_out(
     blk: eth::Block,
+    events: contract::Events,
     store: StoreGetBigInt,
     deltas: Deltas<DeltaBigInt>,
 ) -> Result<EntityChanges, substreams::errors::Error> {
@@ -288,7 +302,7 @@ fn graph_out(
         }
     }
 
-    let mut states = std::collections::BTreeMap::new();
+    let mut transitions = std::collections::BTreeMap::new();
     for delta in deltas.into_iter() {
         let mut parts = delta.key.split(':');
         if parts.next() != Some("vault") {
@@ -300,38 +314,48 @@ fn graph_out(
             continue;
         }
 
-        let assets_key = format!("vault:{vault}:observed_assets");
-        let supply_key = format!("vault:{vault}:total_supply");
-        let (assets, supply): (String, String) = if metric == "observed_assets" {
-            (
-                delta.new_value.to_string(),
-                store
-                    .get_at(delta.ordinal, &supply_key)
-                    .unwrap_or_else(|| BigInt::from(0))
-                    .to_string(),
-            )
+        let transition = transitions
+            .entry(vault.to_owned())
+            .or_insert_with(StateTransition::default);
+        if metric == "observed_assets" {
+            transition.previous_assets = Some(delta.old_value.to_string());
+            transition.current_assets = Some(delta.new_value.to_string());
         } else {
-            (
-                store
-                    .get_at(delta.ordinal, &assets_key)
-                    .unwrap_or_else(|| BigInt::from(0))
-                    .to_string(),
-                delta.new_value.to_string(),
-            )
-        };
-
-        let price = share_price(&assets, &supply);
-        states.insert(vault.to_owned(), (assets, supply, price));
+            transition.previous_supply = Some(delta.old_value.to_string());
+            transition.current_supply = Some(delta.new_value.to_string());
+        }
     }
 
-    for (vault, (assets, supply, price)) in states {
+    for (vault, transition) in transitions {
+        let assets_key = format!("vault:{vault}:observed_assets");
+        let supply_key = format!("vault:{vault}:total_supply");
+        let current_assets = transition.current_assets.unwrap_or_else(|| {
+            store
+                .get_last(&assets_key)
+                .unwrap_or_else(|| BigInt::from(0))
+                .to_string()
+        });
+        let current_supply = transition.current_supply.unwrap_or_else(|| {
+            store
+                .get_last(&supply_key)
+                .unwrap_or_else(|| BigInt::from(0))
+                .to_string()
+        });
+        let previous_assets = transition
+            .previous_assets
+            .unwrap_or_else(|| current_assets.clone());
+        let previous_supply = transition
+            .previous_supply
+            .unwrap_or_else(|| current_supply.clone());
+        let price = share_price(&current_assets, &current_supply);
+
         changes.push(entity_changes::change(
             "Vault",
             &vault,
             Operation::Update,
             vec![
-                entity_changes::field("totalAssets", entity_changes::bigint(&assets)),
-                entity_changes::field("totalSupply", entity_changes::bigint(&supply)),
+                entity_changes::field("totalAssets", entity_changes::bigint(&current_assets)),
+                entity_changes::field("totalSupply", entity_changes::bigint(&current_supply)),
                 entity_changes::field("sharePrice", entity_changes::bigdecimal(&price)),
                 entity_changes::field(
                     "lastUpdatedBlock",
@@ -356,11 +380,65 @@ fn graph_out(
                     "timestamp",
                     entity_changes::bigint(blk.timestamp().seconds.to_string()),
                 ),
-                entity_changes::field("totalAssets", entity_changes::bigint(&assets)),
-                entity_changes::field("totalSupply", entity_changes::bigint(&supply)),
+                entity_changes::field("totalAssets", entity_changes::bigint(&current_assets)),
+                entity_changes::field("totalSupply", entity_changes::bigint(&current_supply)),
                 entity_changes::field("sharePrice", entity_changes::bigdecimal(&price)),
             ],
         ));
+
+        let previous = VaultState {
+            total_assets: parse_u256(&previous_assets),
+            total_supply: parse_u256(&previous_supply),
+        };
+        let current = VaultState {
+            total_assets: parse_u256(&current_assets),
+            total_supply: parse_u256(&current_supply),
+        };
+        if detect_inflation(previous, current).is_some() {
+            let tx_hash = events
+                .transfers
+                .iter()
+                .find(|transfer| transfer.vault_address == vault && transfer.is_asset_transfer)
+                .map(|transfer| transfer.evt_tx_hash.clone())
+                .unwrap_or_default();
+            let tx_bytes = hex::decode(tx_hash.trim_start_matches("0x")).unwrap_or_default();
+            let alert_id = format!("{vault}-{}-inflation", blk.number);
+            changes.push(entity_changes::change(
+                "SecurityAlert",
+                alert_id,
+                Operation::Create,
+                vec![
+                    entity_changes::field("id", entity_changes::string(format!(
+                        "{vault}-{}-inflation",
+                        blk.number
+                    ))),
+                    entity_changes::field("vault", entity_changes::string(&vault)),
+                    entity_changes::field("severity", entity_changes::string("CRITICAL")),
+                    entity_changes::field(
+                        "alertType",
+                        entity_changes::string("DONATION_INFLATION_ATTACK_DETECTED"),
+                    ),
+                    entity_changes::field(
+                        "description",
+                        entity_changes::string(
+                            "Share price increased by more than 5% while share supply stayed unchanged.",
+                        ),
+                    ),
+                    entity_changes::field(
+                        "blockNumber",
+                        entity_changes::bigint(blk.number.to_string()),
+                    ),
+                    entity_changes::field(
+                        "timestamp",
+                        entity_changes::bigint(blk.timestamp().seconds.to_string()),
+                    ),
+                    entity_changes::field(
+                        "transactionHash",
+                        entity_changes::bytes(&tx_bytes),
+                    ),
+                ],
+            ));
+        }
     }
 
     Ok(entity_changes::output(changes))

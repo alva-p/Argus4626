@@ -11,6 +11,7 @@ type Vault @entity(immutable: false) {
   sharePrice: BigDecimal!
   lastUpdatedBlock: BigInt!
   snapshots: [VaultSnapshot!]! @derivedFrom(field: "vault")
+  alerts: [SecurityAlert!]! @derivedFrom(field: "vault")
 }
 
 type VaultSnapshot @entity(immutable: true) {
@@ -21,4 +22,15 @@ type VaultSnapshot @entity(immutable: true) {
   totalAssets: BigInt!
   totalSupply: BigInt!
   sharePrice: BigDecimal!
+}
+
+type SecurityAlert @entity(immutable: true) {
+  id: ID!
+  vault: Vault!
+  severity: String!
+  alertType: String!
+  description: String!
+  blockNumber: BigInt!
+  timestamp: BigInt!
+  transactionHash: Bytes!
 }
