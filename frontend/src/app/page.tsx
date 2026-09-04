@@ -44,11 +44,7 @@ function Dashboard({ data }: { data: Awaited<ReturnType<typeof getDashboardData>
     <div className="app-shell">
       <aside className="sidebar">
         <div className="brand">
-          <div className="brand-mark">A</div>
-          <div>
-            <div className="brand-name">ARGUS4626</div>
-            <div className="brand-sub">VAULT INTELLIGENCE</div>
-          </div>
+          <img className="brand-logo" src="/brand/argus4626-horizontal.png" alt="Argus4626" />
         </div>
         <div className="nav-label">Workspace</div>
         <nav className="nav">

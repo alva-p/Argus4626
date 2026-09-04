@@ -4,6 +4,7 @@ import "./globals.css";
 export const metadata: Metadata = {
   title: "Argus4626 — Vault Intelligence",
   description: "ERC-4626 vault observability and invariant monitoring.",
+  icons: { icon: "/icon.png" },
 };
 
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
