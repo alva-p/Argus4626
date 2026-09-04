@@ -6,6 +6,7 @@ type Vault @entity(immutable: false) {
   assetAddress: Bytes!
   assetSymbol: String!
   assetDecimals: Int!
+  shareDecimals: Int!
   totalAssets: BigInt!
   totalSupply: BigInt!
   sharePrice: BigDecimal!
