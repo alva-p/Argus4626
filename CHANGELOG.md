@@ -1,5 +1,12 @@
 # Cambios de Argus4626
 
+## 2026-09-04 — Dashboard shell
+
+- Se creó la interfaz `Argus4626 — Vault Intelligence` con una estética de consola operativa.
+- Se conectó el dashboard al endpoint real de Subgraph Studio con actualización cada 15 segundos.
+- Se añadieron `Vault Observatory`, `Incident Radar` y el panel de linaje de datos.
+- Se mantuvieron fuera del primer corte las métricas sin fuente real y las abstracciones visuales innecesarias.
+
 ## 2026-09-04 — Studio-compatible EVM Subgraph
 
 - Se reemplazó el adaptador `substreams/graph-entities`, rechazado actualmente por Subgraph Studio.
