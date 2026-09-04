@@ -1,1 +1,5 @@
 /target/
+/src/abi/erc4626.rs
+/src/pb/.last_generated_hash
+*.spkg
+.substreams.env

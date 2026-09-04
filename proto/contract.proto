@@ -1,0 +1,47 @@
+syntax = "proto3";
+
+import "google/protobuf/timestamp.proto";
+
+package contract.v1;
+
+message Events {
+  repeated Deposit deposits = 1;
+  repeated Withdraw withdraws = 2;
+  repeated Transfer transfers = 3;
+}
+
+message Deposit {
+  string vault_address = 1;
+  bytes sender = 2;
+  bytes owner = 3;
+  string assets = 4;
+  string shares = 5;
+  string evt_tx_hash = 6;
+  uint32 evt_index = 7;
+  google.protobuf.Timestamp evt_block_time = 8;
+  uint64 evt_block_number = 9;
+}
+
+message Withdraw {
+  string vault_address = 1;
+  bytes sender = 2;
+  bytes receiver = 3;
+  bytes owner = 4;
+  string assets = 5;
+  string shares = 6;
+  string evt_tx_hash = 7;
+  uint32 evt_index = 8;
+  google.protobuf.Timestamp evt_block_time = 9;
+  uint64 evt_block_number = 10;
+}
+
+message Transfer {
+  string vault_address = 1;
+  bytes from = 2;
+  bytes to = 3;
+  string value = 4;
+  string evt_tx_hash = 5;
+  uint32 evt_index = 6;
+  google.protobuf.Timestamp evt_block_time = 7;
+  uint64 evt_block_number = 8;
+}

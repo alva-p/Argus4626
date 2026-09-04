@@ -18,7 +18,7 @@ La idea para ETHOnline 2026 es crear una infraestructura reutilizable que:
 
 El repositorio estaba prácticamente vacío: solo tenía un `README.md` con el título `Argus4626`.
 
-Todavía no existían Substreams, Subgraph, frontend ni MCP.
+Inicialmente no existían Substreams, Subgraph, frontend ni MCP. En la rama de trabajo ya se añadió el primer módulo real de Substreams; Subgraph, frontend y MCP siguen pendientes.
 
 ## Cambios realizados
 
@@ -28,6 +28,8 @@ Todavía no existían Substreams, Subgraph, frontend ni MCP.
 - Se añadieron `primitive-types` y `uint` para representar valores `U256` y un acumulador `U1024` de cálculo.
 - Se creó `src/lib.rs` y el módulo `src/invariants.rs`.
 - Se creó `src/main.rs` como self-check ejecutable.
+- Se añadió el scaffold compatible con `substreams build`: `build.rs`, `buf.gen.yaml`, `proto/`, `src/abi/`, `src/pb/` y `substreams.yaml`.
+- Se implementó `map_events` para decodificar `Deposit`, `Withdraw` y `Transfer` sobre tres direcciones reales de Ethereum Mainnet con un único patrón ERC-4626.
 
 ### Invariante de inflation/donation
 
@@ -95,7 +97,7 @@ cargo run
 Resultado esperado:
 
 ```text
-5 tests passed
+8 tests passed
 Argus4626 ok: donation/inflation invariant detected
 ```
 
@@ -103,15 +105,16 @@ También está preparado el entorno local para Substreams:
 
 - Substreams CLI `v1.22.0` instalado en `/home/alvap/.local/bin/substreams`.
 - Target Rust `wasm32-unknown-unknown` instalado.
-- Todavía falta autenticar un proveedor y generar el proyecto Substreams.
+- `buf` `v1.72.0` instalado en `/home/alvap/.local/bin/buf` para generar Protobuf.
+- `substreams build` genera correctamente un paquete `.spkg` desde el manifiesto.
 
-## Arquitectura prevista, aún no implementada
+## Arquitectura actual y siguiente etapa
 
 ```text
 Firehose block
-  -> map_events: Deposit, Withdraw y ERC-20 Transfer
-  -> store_vault_state: estado por bóveda entre bloques
-  -> graph_out: snapshots y alertas para entidades Graph
+  -> map_events: Deposit, Withdraw y ERC-20 Transfer [implementado]
+  -> store_vault_state: estado por bóveda entre bloques [pendiente]
+  -> graph_out: snapshots y alertas para entidades Graph [pendiente]
   -> Substreams-powered Subgraph
   -> dashboard web
   -> MCP/agente opcional
@@ -131,12 +134,11 @@ Firehose block
 
 Implementar el pipeline real mínimo para una sola red:
 
-1. Instalar/verificar Substreams CLI.
-2. Crear el módulo `map_events` para filtrar las bóvedas seleccionadas.
-3. Crear el estado por bóveda.
-4. Emitir snapshots y alertas compatibles con un Substreams-powered Subgraph.
-5. Crear un dashboard mínimo con tabla de salud, radar de incidentes y detalle de una bóveda.
-6. Probar una donation en una bóveda ERC-4626 de Sepolia para producir una alerta real en la demo.
+1. Ejecutar `substreams run` con autenticación y validar eventos live sobre Ethereum Mainnet.
+2. Crear el estado por bóveda sin inventar `totalAssets` a partir de `Deposit`/`Withdraw` solamente.
+3. Emitir snapshots y alertas compatibles con un Substreams-powered Subgraph.
+4. Crear un dashboard mínimo con tabla de salud, radar de incidentes y detalle de una bóveda.
+5. Probar una anomalía reproducible en un entorno controlado y documentarla como simulación.
 
 ## Pedido de revisión para otro agente
 

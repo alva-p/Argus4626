@@ -1,0 +1,38 @@
+specVersion: v0.1.0
+package:
+  name: argus4626
+  version: v0.1.0
+  url: https://github.com/alva-p/Argus4626
+  description: Standard ERC-4626 event stream for Ethereum Mainnet
+
+imports:
+    ethcommon: https://spkg.io/streamingfast/ethereum-common-v0.3.3.spkg
+
+protobuf:
+  files:
+    - contract.proto
+  importPaths:
+    - ./proto
+  excludePaths:
+    - sf/substreams
+    - google
+
+binaries:
+  default:
+    type: wasm/rust-v1
+    file: ./target/wasm32-unknown-unknown/release/argus4626.wasm
+
+modules:
+
+  - name: map_events
+    kind: map
+    initialBlock: 18941135
+    blockFilter:
+      module: ethcommon:index_events
+      query:
+        string: evt_addr:0xbeef01735c132ada46aa9aa4c54623caa92a64cb || evt_addr:0x38989bba00bdf8181f4082995b3deae96163ac5d || evt_addr:0xbe53a109b494e5c9f97b9cd39fe969be68bf6204
+    inputs:
+      - source: sf.ethereum.type.v2.Block
+    output:
+      type: proto:contract.v1.Events
+network: mainnet
