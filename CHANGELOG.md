@@ -10,6 +10,12 @@
 
 Resultado: codegen y build del Subgraph estándar completados correctamente.
 
+## 2026-09-04 — Share price decimal normalization
+
+- Se añadió `shareDecimals` al modelo `Vault`.
+- Se corrigió el cálculo de `sharePrice` para soportar activos y shares con distintas precisiones.
+- Se validó el caso `yvUSDC`, que usa 6 decimales tanto para el activo como para las shares.
+
 ## 2026-09-04 — Primer MVP
 
 - Se instaló Substreams CLI `v1.22.0` en `/home/alvap/.local/bin`.

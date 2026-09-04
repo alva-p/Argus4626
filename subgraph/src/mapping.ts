@@ -20,9 +20,9 @@ function pow10(exponent: i32): BigDecimal {
 
 function metadata(address: Address): string[] {
   let id = address.toHexString();
-  if (id == STEAKHOUSE) return ["Morpho", "Steakhouse USDC Vault", "steakUSDC", USDC, "USDC", "6"];
-  if (id == FLAGSHIP) return ["Morpho", "Flagship ETH Vault", "flagshipETH", WETH, "WETH", "18"];
-  return ["Yearn", "yvUSDC-1", "yvUSDC", USDC, "USDC", "6"];
+  if (id == STEAKHOUSE) return ["Morpho", "Steakhouse USDC Vault", "steakUSDC", USDC, "USDC", "6", "18"];
+  if (id == FLAGSHIP) return ["Morpho", "Flagship ETH Vault", "flagshipETH", WETH, "WETH", "18", "18"];
+  return ["Yearn", "yvUSDC-1", "yvUSDC", USDC, "USDC", "6", "6"];
 }
 
 function getVault(address: Address): Vault {
@@ -38,6 +38,7 @@ function getVault(address: Address): Vault {
   vault.assetAddress = Address.fromString(info[3]);
   vault.assetSymbol = info[4];
   vault.assetDecimals = i32(parseInt(info[5]));
+  vault.shareDecimals = i32(parseInt(info[6]));
   vault.totalAssets = BigInt.zero();
   vault.totalSupply = BigInt.zero();
   vault.sharePrice = ZERO_DECIMAL;
@@ -64,7 +65,9 @@ function refreshVault(vault: Vault, eventId: string, blockNumber: BigInt, timest
   vault.lastUpdatedBlock = blockNumber;
   if (supply.gt(BigInt.zero())) {
     let normalizedAssets = assets.toBigDecimal();
-    if (vault.assetDecimals < 18) normalizedAssets = normalizedAssets.times(pow10(18 - vault.assetDecimals));
+    let decimalDelta = vault.shareDecimals - vault.assetDecimals;
+    if (decimalDelta > 0) normalizedAssets = normalizedAssets.times(pow10(decimalDelta));
+    if (decimalDelta < 0) normalizedAssets = normalizedAssets.div(pow10(-decimalDelta));
     vault.sharePrice = normalizedAssets.div(supply.toBigDecimal());
   }
   vault.save();
