@@ -1,0 +1,18 @@
+specVersion: 0.0.5
+description: Argus4626 ERC-4626 vault health snapshots powered by Substreams
+repository: https://github.com/alva-p/Argus4626
+
+schema:
+  file: ./schema.graphql
+
+dataSources:
+  - kind: substreams
+    name: argus4626
+    network: mainnet
+    source:
+      package:
+        moduleName: graph_out
+        file: ../argus4626-v0.1.0.spkg
+    mapping:
+      kind: substreams/graph-entities
+      apiVersion: 0.0.5

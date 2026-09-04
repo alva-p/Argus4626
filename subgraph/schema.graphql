@@ -1,0 +1,24 @@
+type Vault @entity(immutable: false) {
+  id: ID!
+  protocol: String!
+  name: String!
+  symbol: String!
+  assetAddress: Bytes!
+  assetSymbol: String!
+  assetDecimals: Int!
+  totalAssets: BigInt!
+  totalSupply: BigInt!
+  sharePrice: BigDecimal!
+  lastUpdatedBlock: BigInt!
+  snapshots: [VaultSnapshot!]! @derivedFrom(field: "vault")
+}
+
+type VaultSnapshot @entity(immutable: true) {
+  id: ID!
+  vault: Vault!
+  blockNumber: BigInt!
+  timestamp: BigInt!
+  totalAssets: BigInt!
+  totalSupply: BigInt!
+  sharePrice: BigDecimal!
+}

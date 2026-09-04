@@ -1,0 +1,37 @@
+[package]
+name = "argus4626"
+version = "0.1.0"
+edition = "2021"
+
+[lib]
+name = "argus4626"
+crate-type = ["cdylib", "rlib"]
+
+[[bin]]
+name = "argus4626-cli"
+path = "src/main.rs"
+
+[dependencies]
+ethabi = "17"
+base64 = "0.13"
+hex-literal = "0.3.4"
+num-bigint = "0.4"
+num-traits = "0.2.15"
+prost = "0.13"
+prost-types = "0.13"
+primitive-types = "0.13"
+substreams = "0.7"
+substreams-ethereum = "0.11"
+uint = "0.10"
+
+[target.wasm32-unknown-unknown.dependencies]
+getrandom = { version = "0.2", features = ["custom"] }
+
+[build-dependencies]
+anyhow = "1"
+substreams-ethereum = "0.11"
+
+[profile.release]
+lto = true
+opt-level = "s"
+strip = "debuginfo"
