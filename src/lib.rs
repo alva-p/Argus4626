@@ -63,6 +63,15 @@ fn is_zero_address(address: &[u8]) -> bool {
     address.len() == 20 && address.iter().all(|byte| *byte == 0)
 }
 
+fn address_string(address: &[u8]) -> String {
+    let value = Hex(address).to_string();
+    if value.starts_with("0x") {
+        value
+    } else {
+        format!("0x{value}")
+    }
+}
+
 #[substreams::handlers::map]
 fn map_events(blk: eth::Block) -> Result<contract::Events, substreams::errors::Error> {
     let mut events = contract::Events::default();
@@ -75,7 +84,7 @@ fn map_events(blk: eth::Block) -> Result<contract::Events, substreams::errors::E
             .filter(|log| is_tracked(&log.address) || is_tracked_asset(&log.address))
         {
             let Some(event) = abi::erc4626::events::Transfer::match_and_decode(log) else {
-                let vault_address = Hex(&log.address).to_string();
+                let vault_address = address_string(&log.address);
                 let tx_hash = Hex(&receipt.transaction.hash).to_string();
                 let block_time = Some(blk.timestamp().to_owned());
 
@@ -116,12 +125,12 @@ fn map_events(blk: eth::Block) -> Result<contract::Events, substreams::errors::E
             let (vault_address, asset_address, is_asset_transfer) = if let Some(vault) =
                 vault_for_asset_transfer(&log.address, &event.from, &event.to)
             {
-                (Hex(vault).to_string(), Hex(&log.address).to_string(), true)
+                (address_string(vault), address_string(&log.address), true)
             } else {
                 let Some(asset) = asset_for_vault(&log.address) else {
                     continue;
                 };
-                (Hex(&log.address).to_string(), Hex(asset).to_string(), false)
+                (address_string(&log.address), address_string(asset), false)
             };
 
             events.transfers.push(contract::Transfer {
@@ -148,9 +157,9 @@ fn store_vault_state(events: contract::Events, output: StoreAddBigInt) {
     // strategy-aware totalAssets source before calling this production-grade.
     for transfer in events.transfers {
         let (metric, delta) = if transfer.is_asset_transfer {
-            let direction = if Hex(&transfer.to).to_string() == transfer.vault_address {
+            let direction = if address_string(&transfer.to) == transfer.vault_address {
                 1
-            } else if Hex(&transfer.from).to_string() == transfer.vault_address {
+            } else if address_string(&transfer.from) == transfer.vault_address {
                 -1
             } else {
                 continue;
