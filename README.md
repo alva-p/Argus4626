@@ -2,6 +2,8 @@
 
 Argus4626 es un watchdog ERC-4626 para ETHOnline 2026. El nombre refiere a Argos Panoptes, el gigante de la mitología griega con cien ojos: una metáfora para observar muchas bóvedas al mismo tiempo.
 
+Plan de ejecución: [PLAN.md](./PLAN.md).
+
 ## Qué funciona hoy
 
 El crate implementa las dos reglas de seguridad que necesitamos demostrar:
@@ -37,4 +39,4 @@ El primer despliegue debe ser Ethereum mainnet. Arbitrum se agrega como un segun
 
 ## Siguiente corte
 
-Con el núcleo validado, instalamos Substreams CLI, generamos el proyecto con `substreams codegen subgraph` y conectamos primero las bóvedas Ethereum de Morpho/Yearn. El dashboard se agrega después de tener una query GraphQL real.
+Con el núcleo validado y Substreams CLI instalado, generamos el proyecto EVM y conectamos primero las bóvedas Ethereum de Morpho/Yearn. El dashboard se agrega después de tener una query GraphQL real.
