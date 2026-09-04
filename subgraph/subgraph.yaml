@@ -29,6 +29,10 @@ dataSources:
           handler: handleDeposit
         - event: Withdraw(indexed address,indexed address,indexed address,uint256,uint256)
           handler: handleWithdraw
+      blockHandlers:
+        - handler: handleOnce
+          filter:
+            kind: once
       file: ./src/mapping.ts
 
   - kind: ethereum/contract
