@@ -1,4 +1,4 @@
-import { Address, BigDecimal, BigInt, Bytes } from "@graphprotocol/graph-ts";
+import { Address, BigDecimal, BigInt, Bytes, ethereum } from "@graphprotocol/graph-ts";
 import { ArgusVault, Deposit, Withdraw } from "../generated/SteakhouseUSDC/ArgusVault";
 import { Vault, VaultSnapshot, SecurityAlert } from "../generated/schema";
 
@@ -118,4 +118,10 @@ export function handleWithdraw(event: Withdraw): void {
     event.block.timestamp,
     event.transaction.hash,
   );
+}
+
+export function handleOnce(_block: ethereum.Block): void {
+  getVault(Address.fromString(STEAKHOUSE));
+  getVault(Address.fromString(FLAGSHIP));
+  getVault(Address.fromString(YEARN));
 }
