@@ -2,7 +2,7 @@
 
 **Estado:** activo  
 **Fecha:** 2026-09-04  
-**Rama actual:** `main`
+**Rama:** `feat/argus4626-mvp`  
 **Objetivo:** entregar una demo end-to-end competitiva para ETHOnline 2026.
 
 ## 1. Norte del proyecto
@@ -425,66 +425,12 @@ Mostrar que el mismo módulo se aplica a distintas bóvedas ERC-4626 sin indexad
 - [ ] merge desde la rama de trabajo hacia `main`;
 - [ ] documentación separando lo implementado de lo futuro.
 
-## 15. Mañana — próxima sesión
+## 15. Próxima acción
 
-### Prioridad 1 — Mejorar la arquitectura visual del README
-
-Sí: usar `draw.io` para crear un diagrama limpio y exportarlo como SVG. El archivo fuente debe quedar versionado para poder iterarlo:
+Crear el commit:
 
 ```text
-docs/argus4626-architecture.drawio
-docs/argus4626-architecture.svg
+feat: initialize EVM Substreams pipeline
 ```
 
-El diagrama debe mostrar, con jerarquía visual clara:
-
-```text
-Ethereum Mainnet / Firehose
-          │
-          ├── Substreams Rust → The Graph Market
-          │                         │
-          │                         └── state, signals, EntityChanges
-          │
-          └── Standard EVM Subgraph → Subgraph Studio
-                                            │
-                                            ▼
-                                      Argus Dashboard
-```
-
-Requisitos de diseño:
-
-- diferenciar ingestion, computation, indexing y presentation;
-- hacer visibles los dos productos de The Graph y sus roles;
-- usar la paleta del logo: obsidian, cyan y antique gold;
-- mostrar que Morpho y Yearn entran por la misma frontera ERC-4626;
-- evitar texto técnico pequeño y flechas cruzadas;
-- reemplazar el bloque Mermaid del README solo después de revisar el SVG en GitHub.
-
-### Prioridad 2 — Confirmar el pipeline vivo de Substreams
-
-- [ ] autenticar el CLI usando el token local, sin exponerlo;
-- [ ] ejecutar `map_events` sobre un rango corto de Ethereum Mainnet;
-- [ ] ejecutar `graph_out` y confirmar `EntityChanges` reales;
-- [ ] guardar en `PROJECT_CONTEXT.md` el comando probado y el resultado resumido;
-- [ ] decidir cómo hacer visible en la demo el aporte de The Graph Market sin fingir una conexión del frontend.
-
-### Prioridad 3 — Construir una vista forense real
-
-Crear una rama `feat/vault-forensics` y agregar únicamente:
-
-- [ ] ruta de detalle `/vault/[id]`;
-- [ ] historial de `VaultSnapshot` con share price;
-- [ ] explicación de la alerta en lenguaje simple;
-- [ ] bloque, timestamp, hash y enlace a Etherscan;
-- [ ] navegación desde la tabla y desde Incident Radar.
-
-### Prioridad 4 — Preparar el caso de demo
-
-- [ ] localizar un incidente histórico real o preparar un caso reproducible en Sepolia;
-- [ ] confirmar que la alerta aparece con datos reales y no mocks;
-- [ ] capturar el bloque, transacción y secuencia visual antes/después;
-- [ ] actualizar el guion de tres minutos con esa evidencia concreta.
-
-### Regla de trabajo
-
-Cada prioridad importante tendrá su propia rama y PR hacia `main`. Primero se valida el resultado técnico, después se hace squash merge. No abrir MCP, APY ni multicadena hasta cerrar estas cuatro prioridades.
+Debe contener solamente el esqueleto generado y compilable de Substreams. No agregar todavía frontend, MCP, APY ni deployment.
