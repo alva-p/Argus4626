@@ -41,3 +41,16 @@ Resultado: 8 tests exitosos, self-check del watchdog ejecutado correctamente y p
 - Se mantuvo `observed_assets` como proxy explícito: todavía no representa `totalAssets()` cuando existen estrategias externas.
 
 Resultado: 9 tests exitosos y paquete Substreams generado con `map_events → store_vault_state → map_state_changes`.
+
+## 2026-09-04 — Graph out y Subgraph mínimo
+
+- Se creó la rama dedicada `feat/graph-out-subgraph` para esta integración.
+- Se añadió el protobuf oficial compatible con Graph Node `sf.substreams.sink.entity.v1.EntityChanges`.
+- Se implementó `graph_out` para emitir entidades `Vault` y `VaultSnapshot`.
+- Se añadieron metadatos estáticos de las tres bóvedas Ethereum configuradas.
+- Se añadió cálculo decimal determinista del `sharePrice` sin floats.
+- Se creó `subgraph/schema.graphql` y `subgraph/subgraph.yaml` como Substreams-powered Subgraph.
+- `graph build subgraph/subgraph.yaml` pasó correctamente con Graph CLI `0.98.1`.
+- `substreams run graph_out` procesó el bloque inicial real y emitió tres entidades `Vault` en formato `EntityChanges`.
+
+Resultado: 10 tests exitosos, paquete compilado y salida Graph Node validada sobre datos reales.

@@ -10,12 +10,19 @@ El crate implementa las dos reglas de seguridad que necesitamos demostrar:
 
 - `DONATION_INFLATION_ATTACK_DETECTED`: el precio de share supera el umbral configurado sin cambiar el supply.
 - `LIQUIDITY_DRAIN_EVENT`: los retiros de una ventana superan el porcentaje configurado de los activos disponibles.
+- `graph_out`: emite `Vault` y `VaultSnapshot` como `EntityChanges` compatibles con Graph Node.
 
 La comparación se hace con enteros de 512 bits para no perder precisión al multiplicar valores `uint256`.
 
 ```bash
 cargo test
 cargo run
+```
+
+Validar el Subgraph:
+
+```bash
+npx --yes @graphprotocol/graph-cli@0.98.1 build subgraph/subgraph.yaml
 ```
 
 ## Modelo para la hackathon
@@ -39,4 +46,4 @@ El primer despliegue debe ser Ethereum mainnet. Arbitrum se agrega como un segun
 
 ## Siguiente corte
 
-Con el núcleo validado y Substreams CLI instalado, generamos el proyecto EVM y conectamos primero las bóvedas Ethereum de Morpho/Yearn. El dashboard se agrega después de tener una query GraphQL real.
+El siguiente corte conecta `SecurityAlert` al `graph_out`, despliega el Subgraph en Studio y construye el dashboard visual sobre una query GraphQL real.

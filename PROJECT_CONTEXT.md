@@ -31,7 +31,9 @@ Inicialmente no existían Substreams, Subgraph, frontend ni MCP. En la rama de t
 - Se añadió el scaffold compatible con `substreams build`: `build.rs`, `buf.gen.yaml`, `proto/`, `src/abi/`, `src/pb/` y `substreams.yaml`.
 - Se implementó `map_events` para decodificar `Deposit`, `Withdraw` y `Transfer` sobre tres direcciones reales de Ethereum Mainnet con un único patrón ERC-4626.
 - Se añadió `store_vault_state`, que acumula por bóveda los deltas de `observed_assets` y `total_supply`.
-- Se añadió `map_state_changes`, que convierte los deltas del store en una salida Protobuf para el watchdog.
+- Se añadió `map_state_changes`, que convierte los deltas del store en una salida Protobuf para diagnóstico.
+- Se añadió `graph_out`, que emite `EntityChanges` compatibles con Graph Node para `Vault` y `VaultSnapshot`.
+- Se creó el esquema y manifest de un Substreams-powered Subgraph en `subgraph/`.
 
 ### Invariante de inflation/donation
 
@@ -75,7 +77,7 @@ La suma y los productos se hacen en `U1024` para evitar overflow antes de compar
 
 ### Tests
 
-Actualmente hay 9 tests:
+Actualmente hay 10 tests:
 
 - Detecta salto de precio sin cambio de supply.
 - Ignora un depósito normal donde assets y supply aumentan juntos.
@@ -86,6 +88,7 @@ Actualmente hay 9 tests:
 - No desborda cuando los productos de inflación alcanzan el límite de `uint256`.
 - No desborda cuando assets y retiros son `uint256::MAX`.
 - No mezcla dos bóvedas que comparten el activo USDC.
+- Calcula `sharePrice` decimal sin floats ni redondeo binario.
 
 ## Validación actual
 
@@ -118,8 +121,8 @@ Firehose block
   -> map_events: Deposit, Withdraw y ERC-20 Transfer [implementado]
   -> store_vault_state: observed_assets y total_supply [implementado]
   -> map_state_changes: deltas normalizados [implementado]
-  -> graph_out: snapshots y alertas para entidades Graph [pendiente]
-  -> Substreams-powered Subgraph
+  -> graph_out: Vault y VaultSnapshot como EntityChanges [implementado]
+  -> Substreams-powered Subgraph [manifest/schema listos]
   -> dashboard web
   -> MCP/agente opcional
 ```
@@ -138,9 +141,9 @@ Firehose block
 
 Implementar el pipeline real mínimo para una sola red:
 
-1. Ejecutar `substreams run` con autenticación y validar eventos live sobre Ethereum Mainnet.
+1. Conectar las alertas del watchdog a `graph_out` como `SecurityAlert`.
 2. Reemplazar o complementar `observed_assets` con una fuente validada de `totalAssets()` cuando el vault use estrategias externas.
-3. Emitir snapshots y alertas compatibles con un Substreams-powered Subgraph.
+3. Desplegar el Subgraph en Subgraph Studio y validar una query GraphQL real.
 4. Crear un dashboard mínimo con tabla de salud, radar de incidentes y detalle de una bóveda.
 5. Probar una anomalía reproducible en un entorno controlado y documentarla como simulación.
 

@@ -1,14 +1,16 @@
 mod abi;
+mod entity_changes;
 pub mod invariants;
 #[allow(unused)]
 mod pb;
 
 use hex_literal::hex;
 use pb::contract::v1 as contract;
+use pb::sf::substreams::sink::entity::v1::{EntityChanges, Operation};
 use std::str::FromStr;
 use substreams::prelude::{StoreAdd, StoreNew};
 use substreams::scalar::BigInt;
-use substreams::store::{DeltaBigInt, Deltas, StoreAddBigInt};
+use substreams::store::{DeltaBigInt, Deltas, StoreAddBigInt, StoreGet, StoreGetBigInt};
 use substreams::Hex;
 use substreams_ethereum::pb::eth::v2 as eth;
 use substreams_ethereum::Event;
@@ -29,6 +31,8 @@ const TRACKED_VAULTS: [([u8; 20], [u8; 20]); 3] = [
         hex!("a0b86991c6218b36c1d19d4a2e9eb0ce3606eb48"),
     ),
 ];
+
+const INITIAL_BLOCK: u64 = 18_941_135;
 
 fn is_tracked(address: &[u8]) -> bool {
     TRACKED_VAULTS
@@ -70,6 +74,38 @@ fn address_string(address: &[u8]) -> String {
     } else {
         format!("0x{value}")
     }
+}
+
+fn vault_metadata(
+    address: &[u8],
+) -> Option<(&'static str, &'static str, &'static str, &'static str, i32)> {
+    if address == TRACKED_VAULTS[0].0.as_slice() {
+        Some(("Morpho", "Steakhouse USDC", "steakhouseUSDC", "USDC", 6))
+    } else if address == TRACKED_VAULTS[1].0.as_slice() {
+        Some(("Morpho", "Flagship ETH", "flagshipETH", "WETH", 18))
+    } else if address == TRACKED_VAULTS[2].0.as_slice() {
+        Some(("Yearn", "yvUSDC", "yvUSDC", "USDC", 6))
+    } else {
+        None
+    }
+}
+
+fn share_price(assets: &str, supply: &str) -> String {
+    let Ok(assets) = assets.parse::<num_bigint::BigUint>() else {
+        return "0".to_owned();
+    };
+    let Ok(supply) = supply.parse::<num_bigint::BigUint>() else {
+        return "0".to_owned();
+    };
+    if supply == num_bigint::BigUint::from(0u8) {
+        return "0".to_owned();
+    }
+
+    let scale = num_bigint::BigUint::from(10u8).pow(18);
+    let scaled = assets * &scale / supply;
+    let whole = &scaled / &scale;
+    let fraction = (&scaled % &scale).to_str_radix(10);
+    format!("{whole}.{:0>18}", fraction)
 }
 
 #[substreams::handlers::map]
@@ -211,6 +247,125 @@ fn map_state_changes(
     Ok(output)
 }
 
+#[substreams::handlers::map]
+fn graph_out(
+    blk: eth::Block,
+    store: StoreGetBigInt,
+    deltas: Deltas<DeltaBigInt>,
+) -> Result<EntityChanges, substreams::errors::Error> {
+    let mut changes = Vec::new();
+
+    if blk.number == INITIAL_BLOCK {
+        for (vault, asset) in TRACKED_VAULTS {
+            let Some((protocol, name, symbol, asset_symbol, asset_decimals)) =
+                vault_metadata(&vault)
+            else {
+                continue;
+            };
+            let id = address_string(&vault);
+            let zero = "0".to_owned();
+            changes.push(entity_changes::change(
+                "Vault",
+                &id,
+                Operation::Create,
+                vec![
+                    entity_changes::field("id", entity_changes::string(id.clone())),
+                    entity_changes::field("protocol", entity_changes::string(protocol)),
+                    entity_changes::field("name", entity_changes::string(name)),
+                    entity_changes::field("symbol", entity_changes::string(symbol)),
+                    entity_changes::field("assetAddress", entity_changes::bytes(&asset)),
+                    entity_changes::field("assetSymbol", entity_changes::string(asset_symbol)),
+                    entity_changes::field("assetDecimals", entity_changes::int32(asset_decimals)),
+                    entity_changes::field("totalAssets", entity_changes::bigint(&zero)),
+                    entity_changes::field("totalSupply", entity_changes::bigint(&zero)),
+                    entity_changes::field("sharePrice", entity_changes::bigdecimal(&zero)),
+                    entity_changes::field(
+                        "lastUpdatedBlock",
+                        entity_changes::bigint(INITIAL_BLOCK.to_string()),
+                    ),
+                ],
+            ));
+        }
+    }
+
+    let mut states = std::collections::BTreeMap::new();
+    for delta in deltas.into_iter() {
+        let mut parts = delta.key.split(':');
+        if parts.next() != Some("vault") {
+            continue;
+        }
+        let Some(vault) = parts.next() else { continue };
+        let Some(metric) = parts.next() else { continue };
+        if metric != "observed_assets" && metric != "total_supply" {
+            continue;
+        }
+
+        let assets_key = format!("vault:{vault}:observed_assets");
+        let supply_key = format!("vault:{vault}:total_supply");
+        let (assets, supply): (String, String) = if metric == "observed_assets" {
+            (
+                delta.new_value.to_string(),
+                store
+                    .get_at(delta.ordinal, &supply_key)
+                    .unwrap_or_else(|| BigInt::from(0))
+                    .to_string(),
+            )
+        } else {
+            (
+                store
+                    .get_at(delta.ordinal, &assets_key)
+                    .unwrap_or_else(|| BigInt::from(0))
+                    .to_string(),
+                delta.new_value.to_string(),
+            )
+        };
+
+        let price = share_price(&assets, &supply);
+        states.insert(vault.to_owned(), (assets, supply, price));
+    }
+
+    for (vault, (assets, supply, price)) in states {
+        changes.push(entity_changes::change(
+            "Vault",
+            &vault,
+            Operation::Update,
+            vec![
+                entity_changes::field("totalAssets", entity_changes::bigint(&assets)),
+                entity_changes::field("totalSupply", entity_changes::bigint(&supply)),
+                entity_changes::field("sharePrice", entity_changes::bigdecimal(&price)),
+                entity_changes::field(
+                    "lastUpdatedBlock",
+                    entity_changes::bigint(blk.number.to_string()),
+                ),
+            ],
+        ));
+
+        let snapshot_id = format!("{vault}-{}", blk.number);
+        changes.push(entity_changes::change(
+            "VaultSnapshot",
+            &snapshot_id,
+            Operation::Create,
+            vec![
+                entity_changes::field("id", entity_changes::string(&snapshot_id)),
+                entity_changes::field("vault", entity_changes::string(&vault)),
+                entity_changes::field(
+                    "blockNumber",
+                    entity_changes::bigint(blk.number.to_string()),
+                ),
+                entity_changes::field(
+                    "timestamp",
+                    entity_changes::bigint(blk.timestamp().seconds.to_string()),
+                ),
+                entity_changes::field("totalAssets", entity_changes::bigint(&assets)),
+                entity_changes::field("totalSupply", entity_changes::bigint(&supply)),
+                entity_changes::field("sharePrice", entity_changes::bigdecimal(&price)),
+            ],
+        ));
+    }
+
+    Ok(entity_changes::output(changes))
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -229,5 +384,11 @@ mod tests {
             vault_for_asset_transfer(&usdc, &[1; 20], &yearn).map(|address| address.as_slice()),
             Some(steakhouse.as_slice())
         );
+    }
+
+    #[test]
+    fn formats_share_price_without_float_rounding() {
+        assert_eq!(share_price("1000001", "1000000"), "1.000001000000000000");
+        assert_eq!(share_price("100", "0"), "0");
     }
 }

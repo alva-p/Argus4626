@@ -11,6 +11,7 @@ imports:
 protobuf:
   files:
     - contract.proto
+    - entity.proto
   importPaths:
     - ./proto
   excludePaths:
@@ -53,4 +54,16 @@ modules:
         mode: deltas
     output:
       type: proto:contract.v1.StateChanges
+
+  - name: graph_out
+    kind: map
+    initialBlock: 18941135
+    inputs:
+      - source: sf.ethereum.type.v2.Block
+      - store: store_vault_state
+        mode: get
+      - store: store_vault_state
+        mode: deltas
+    output:
+      type: proto:sf.substreams.sink.entity.v1.EntityChanges
 network: mainnet
