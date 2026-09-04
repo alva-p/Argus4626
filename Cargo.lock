@@ -25,6 +25,7 @@ dependencies = [
  "base64",
  "ethabi",
  "getrandom 0.2.17",
+ "hex",
  "hex-literal",
  "num-bigint",
  "num-traits",

@@ -60,6 +60,7 @@ modules:
     initialBlock: 18941135
     inputs:
       - source: sf.ethereum.type.v2.Block
+      - map: map_events
       - store: store_vault_state
         mode: get
       - store: store_vault_state
