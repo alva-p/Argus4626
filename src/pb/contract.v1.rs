@@ -12,6 +12,26 @@ pub struct Events {
 }
 #[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]
+pub struct StateChanges {
+    #[prost(message, repeated, tag="1")]
+    pub changes: ::prost::alloc::vec::Vec<StateChange>,
+}
+#[allow(clippy::derive_partial_eq_without_eq)]
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct StateChange {
+    #[prost(string, tag="1")]
+    pub vault_address: ::prost::alloc::string::String,
+    #[prost(string, tag="2")]
+    pub metric: ::prost::alloc::string::String,
+    #[prost(string, tag="3")]
+    pub previous_value: ::prost::alloc::string::String,
+    #[prost(string, tag="4")]
+    pub current_value: ::prost::alloc::string::String,
+    #[prost(uint64, tag="5")]
+    pub block_number: u64,
+}
+#[allow(clippy::derive_partial_eq_without_eq)]
+#[derive(Clone, PartialEq, ::prost::Message)]
 pub struct Deposit {
     #[prost(string, tag="1")]
     pub vault_address: ::prost::alloc::string::String,
@@ -75,5 +95,9 @@ pub struct Transfer {
     pub evt_block_time: ::core::option::Option<::prost_types::Timestamp>,
     #[prost(uint64, tag="8")]
     pub evt_block_number: u64,
+    #[prost(string, tag="9")]
+    pub asset_address: ::prost::alloc::string::String,
+    #[prost(bool, tag="10")]
+    pub is_asset_transfer: bool,
 }
 // @@protoc_insertion_point(module)

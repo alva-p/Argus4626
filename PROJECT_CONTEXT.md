@@ -30,6 +30,8 @@ Inicialmente no existían Substreams, Subgraph, frontend ni MCP. En la rama de t
 - Se creó `src/main.rs` como self-check ejecutable.
 - Se añadió el scaffold compatible con `substreams build`: `build.rs`, `buf.gen.yaml`, `proto/`, `src/abi/`, `src/pb/` y `substreams.yaml`.
 - Se implementó `map_events` para decodificar `Deposit`, `Withdraw` y `Transfer` sobre tres direcciones reales de Ethereum Mainnet con un único patrón ERC-4626.
+- Se añadió `store_vault_state`, que acumula por bóveda los deltas de `observed_assets` y `total_supply`.
+- Se añadió `map_state_changes`, que convierte los deltas del store en una salida Protobuf para el watchdog.
 
 ### Invariante de inflation/donation
 
@@ -73,7 +75,7 @@ La suma y los productos se hacen en `U1024` para evitar overflow antes de compar
 
 ### Tests
 
-Actualmente hay 8 tests:
+Actualmente hay 9 tests:
 
 - Detecta salto de precio sin cambio de supply.
 - Ignora un depósito normal donde assets y supply aumentan juntos.
@@ -83,6 +85,7 @@ Actualmente hay 8 tests:
 - No desborda en el límite de `uint256`.
 - No desborda cuando los productos de inflación alcanzan el límite de `uint256`.
 - No desborda cuando assets y retiros son `uint256::MAX`.
+- No mezcla dos bóvedas que comparten el activo USDC.
 
 ## Validación actual
 
@@ -97,7 +100,7 @@ cargo run
 Resultado esperado:
 
 ```text
-8 tests passed
+9 tests passed
 Argus4626 ok: donation/inflation invariant detected
 ```
 
@@ -113,7 +116,8 @@ También está preparado el entorno local para Substreams:
 ```text
 Firehose block
   -> map_events: Deposit, Withdraw y ERC-20 Transfer [implementado]
-  -> store_vault_state: estado por bóveda entre bloques [pendiente]
+  -> store_vault_state: observed_assets y total_supply [implementado]
+  -> map_state_changes: deltas normalizados [implementado]
   -> graph_out: snapshots y alertas para entidades Graph [pendiente]
   -> Substreams-powered Subgraph
   -> dashboard web
@@ -135,7 +139,7 @@ Firehose block
 Implementar el pipeline real mínimo para una sola red:
 
 1. Ejecutar `substreams run` con autenticación y validar eventos live sobre Ethereum Mainnet.
-2. Crear el estado por bóveda sin inventar `totalAssets` a partir de `Deposit`/`Withdraw` solamente.
+2. Reemplazar o complementar `observed_assets` con una fuente validada de `totalAssets()` cuando el vault use estrategias externas.
 3. Emitir snapshots y alertas compatibles con un Substreams-powered Subgraph.
 4. Crear un dashboard mínimo con tabla de salud, radar de incidentes y detalle de una bóveda.
 5. Probar una anomalía reproducible en un entorno controlado y documentarla como simulación.

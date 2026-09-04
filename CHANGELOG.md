@@ -31,3 +31,13 @@ cargo run
 ```
 
 Resultado: 8 tests exitosos, self-check del watchdog ejecutado correctamente y paquete Substreams generado.
+
+## 2026-09-04 — Estado por bóveda
+
+- Se añadió `store_vault_state` con acumulación por clave para `observed_assets` y `total_supply`.
+- Se amplió el filtro para observar transferencias del activo subyacente además de eventos emitidos por la bóveda.
+- Se añadió `map_state_changes`, que expone los deltas anteriores y actuales para el siguiente módulo de watchdog.
+- Se corrigió la atribución de transferencias cuando dos bóvedas comparten el mismo activo USDC.
+- Se mantuvo `observed_assets` como proxy explícito: todavía no representa `totalAssets()` cuando existen estrategias externas.
+
+Resultado: 9 tests exitosos y paquete Substreams generado con `map_events → store_vault_state → map_state_changes`.

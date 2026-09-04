@@ -35,4 +35,22 @@ modules:
       - source: sf.ethereum.type.v2.Block
     output:
       type: proto:contract.v1.Events
+
+  - name: store_vault_state
+    kind: store
+    initialBlock: 18941135
+    updatePolicy: add
+    valueType: bigint
+    inputs:
+      - map: map_events
+
+  - name: map_state_changes
+    kind: map
+    initialBlock: 18941135
+    inputs:
+      - source: sf.ethereum.type.v2.Block
+      - store: store_vault_state
+        mode: deltas
+    output:
+      type: proto:contract.v1.StateChanges
 network: mainnet

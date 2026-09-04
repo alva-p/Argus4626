@@ -10,6 +10,18 @@ message Events {
   repeated Transfer transfers = 3;
 }
 
+message StateChanges {
+  repeated StateChange changes = 1;
+}
+
+message StateChange {
+  string vault_address = 1;
+  string metric = 2;
+  string previous_value = 3;
+  string current_value = 4;
+  uint64 block_number = 5;
+}
+
 message Deposit {
   string vault_address = 1;
   bytes sender = 2;
@@ -44,4 +56,6 @@ message Transfer {
   uint32 evt_index = 6;
   google.protobuf.Timestamp evt_block_time = 7;
   uint64 evt_block_number = 8;
+  string asset_address = 9;
+  bool is_asset_transfer = 10;
 }
