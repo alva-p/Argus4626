@@ -7,7 +7,7 @@ mod pb;
 use hex_literal::hex;
 use invariants::{detect_inflation, VaultState};
 use pb::contract::v1 as contract;
-use pb::sf::substreams::sink::entity::v1::{EntityChanges, Operation};
+use pb::sf::substreams::sink::entity::v1::{EntityChange, EntityChanges, Operation};
 use std::str::FromStr;
 use substreams::prelude::{StoreAdd, StoreNew};
 use substreams::scalar::BigInt;
@@ -34,6 +34,8 @@ const TRACKED_VAULTS: [([u8; 20], [u8; 20]); 3] = [
 ];
 
 const INITIAL_BLOCK: u64 = 18_941_135;
+const WITHDRAWAL_BUCKET_SECONDS: i64 = 60;
+const WITHDRAWAL_WINDOW_BUCKETS: u64 = 60;
 
 #[derive(Default)]
 struct StateTransition {
@@ -41,6 +43,7 @@ struct StateTransition {
     current_assets: Option<String>,
     previous_supply: Option<String>,
     current_supply: Option<String>,
+    withdrawal_activity: bool,
 }
 
 fn is_tracked(address: &[u8]) -> bool {
@@ -119,6 +122,50 @@ fn share_price(assets: &str, supply: &str) -> String {
 
 fn parse_u256(value: &str) -> primitive_types::U256 {
     value.parse().unwrap_or_default()
+}
+
+fn security_alert(
+    vault: &str,
+    block_number: u64,
+    timestamp: i64,
+    tx_hash: &str,
+    severity: &str,
+    alert_type: &str,
+    description: &str,
+) -> EntityChange {
+    let id = format!("{vault}-{block_number}-{alert_type}");
+    let tx_bytes = hex::decode(tx_hash.trim_start_matches("0x")).unwrap_or_default();
+    entity_changes::change(
+        "SecurityAlert",
+        &id,
+        Operation::Create,
+        vec![
+            entity_changes::field("id", entity_changes::string(&id)),
+            entity_changes::field("vault", entity_changes::string(vault)),
+            entity_changes::field("severity", entity_changes::string(severity)),
+            entity_changes::field("alertType", entity_changes::string(alert_type)),
+            entity_changes::field("description", entity_changes::string(description)),
+            entity_changes::field(
+                "blockNumber",
+                entity_changes::bigint(block_number.to_string()),
+            ),
+            entity_changes::field("timestamp", entity_changes::bigint(timestamp.to_string())),
+            entity_changes::field("transactionHash", entity_changes::bytes(&tx_bytes)),
+        ],
+    )
+}
+
+fn withdrawal_window(store: &StoreGetBigInt, vault: &str, timestamp: i64) -> BigInt {
+    let current_bucket = timestamp / WITHDRAWAL_BUCKET_SECONDS;
+    let mut total = BigInt::zero();
+    for offset in 0..WITHDRAWAL_WINDOW_BUCKETS {
+        let bucket = current_bucket.saturating_sub(offset as i64);
+        let key = format!("vault:{vault}:withdrawals:{bucket}");
+        if let Some(value) = store.get_last(key) {
+            total += value;
+        }
+    }
+    total
 }
 
 #[substreams::handlers::map]
@@ -201,7 +248,7 @@ fn map_events(blk: eth::Block) -> Result<contract::Events, substreams::errors::E
 }
 
 #[substreams::handlers::store]
-fn store_vault_state(events: contract::Events, output: StoreAddBigInt) {
+fn store_vault_state(events: contract::Events, blk: eth::Block, output: StoreAddBigInt) {
     // ponytail: ERC-20 balance deltas are the MVP asset proxy; replace with a
     // strategy-aware totalAssets source before calling this production-grade.
     for transfer in events.transfers {
@@ -226,6 +273,13 @@ fn store_vault_state(events: contract::Events, output: StoreAddBigInt) {
         let delta = if delta < 0 { amount.neg() } else { amount };
         let key = format!("vault:{}:{}", transfer.vault_address, metric);
         output.add(transfer.evt_index as u64, key, delta);
+    }
+
+    let bucket = blk.timestamp().seconds / WITHDRAWAL_BUCKET_SECONDS;
+    for withdraw in events.withdraws {
+        let amount = BigInt::from_str(&withdraw.assets).expect("invalid uint256 withdrawal amount");
+        let key = format!("vault:{}:withdrawals:{}", withdraw.vault_address, bucket);
+        output.add(withdraw.evt_index as u64, key, amount);
     }
 }
 
@@ -310,6 +364,13 @@ fn graph_out(
         }
         let Some(vault) = parts.next() else { continue };
         let Some(metric) = parts.next() else { continue };
+        if metric == "withdrawals" {
+            transitions
+                .entry(vault.to_owned())
+                .or_insert_with(StateTransition::default)
+                .withdrawal_activity = true;
+            continue;
+        }
         if metric != "observed_assets" && metric != "total_supply" {
             continue;
         }
@@ -399,45 +460,46 @@ fn graph_out(
                 .transfers
                 .iter()
                 .find(|transfer| transfer.vault_address == vault && transfer.is_asset_transfer)
-                .map(|transfer| transfer.evt_tx_hash.clone())
+                .map(|transfer| transfer.evt_tx_hash.as_str())
                 .unwrap_or_default();
-            let tx_bytes = hex::decode(tx_hash.trim_start_matches("0x")).unwrap_or_default();
-            let alert_id = format!("{vault}-{}-inflation", blk.number);
-            changes.push(entity_changes::change(
-                "SecurityAlert",
-                alert_id,
-                Operation::Create,
-                vec![
-                    entity_changes::field("id", entity_changes::string(format!(
-                        "{vault}-{}-inflation",
-                        blk.number
-                    ))),
-                    entity_changes::field("vault", entity_changes::string(&vault)),
-                    entity_changes::field("severity", entity_changes::string("CRITICAL")),
-                    entity_changes::field(
-                        "alertType",
-                        entity_changes::string("DONATION_INFLATION_ATTACK_DETECTED"),
-                    ),
-                    entity_changes::field(
-                        "description",
-                        entity_changes::string(
-                            "Share price increased by more than 5% while share supply stayed unchanged.",
-                        ),
-                    ),
-                    entity_changes::field(
-                        "blockNumber",
-                        entity_changes::bigint(blk.number.to_string()),
-                    ),
-                    entity_changes::field(
-                        "timestamp",
-                        entity_changes::bigint(blk.timestamp().seconds.to_string()),
-                    ),
-                    entity_changes::field(
-                        "transactionHash",
-                        entity_changes::bytes(&tx_bytes),
-                    ),
-                ],
+            changes.push(security_alert(
+                &vault,
+                blk.number,
+                blk.timestamp().seconds,
+                tx_hash,
+                "CRITICAL",
+                "DONATION_INFLATION_ATTACK_DETECTED",
+                "Share price increased by more than 5% while share supply stayed unchanged.",
             ));
+        }
+
+        if transition.withdrawal_activity {
+            let withdrawn = withdrawal_window(&store, &vault, blk.timestamp().seconds);
+            let available = store
+                .get_last(&assets_key)
+                .unwrap_or_else(|| BigInt::zero());
+            if invariants::detect_liquidity_drain(
+                parse_u256(&withdrawn.to_string()),
+                parse_u256(&available.to_string()),
+            )
+            .is_some()
+            {
+                let tx_hash = events
+                    .withdraws
+                    .iter()
+                    .find(|withdraw| withdraw.vault_address == vault)
+                    .map(|withdraw| withdraw.evt_tx_hash.as_str())
+                    .unwrap_or_default();
+                changes.push(security_alert(
+                    &vault,
+                    blk.number,
+                    blk.timestamp().seconds,
+                    tx_hash,
+                    "WARNING",
+                    "LIQUIDITY_DRAIN_EVENT",
+                    "Withdrawals in the rolling 60-minute window exceeded 35% of available assets.",
+                ));
+            }
         }
     }
 

@@ -44,6 +44,7 @@ modules:
     valueType: bigint
     inputs:
       - map: map_events
+      - source: sf.ethereum.type.v2.Block
 
   - name: map_state_changes
     kind: map

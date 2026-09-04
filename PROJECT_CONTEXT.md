@@ -34,6 +34,7 @@ Inicialmente no existían Substreams, Subgraph, frontend ni MCP. En la rama de t
 - Se añadió `map_state_changes`, que convierte los deltas del store en una salida Protobuf para diagnóstico.
 - Se añadió `graph_out`, que emite `EntityChanges` compatibles con Graph Node para `Vault`, `VaultSnapshot` y `SecurityAlert`.
 - Se creó el esquema y manifest de un Substreams-powered Subgraph en `subgraph/`.
+- Se añadieron buckets de retiros de 60 segundos y una ventana móvil de 60 buckets para `LIQUIDITY_DRAIN_EVENT`.
 
 ### Invariante de inflation/donation
 
@@ -119,7 +120,7 @@ También está preparado el entorno local para Substreams:
 ```text
 Firehose block
   -> map_events: Deposit, Withdraw y ERC-20 Transfer [implementado]
-  -> store_vault_state: observed_assets y total_supply [implementado]
+  -> store_vault_state: observed_assets, total_supply y withdrawal buckets [implementado]
   -> map_state_changes: deltas normalizados [implementado]
   -> graph_out: Vault, VaultSnapshot y SecurityAlert como EntityChanges [implementado]
   -> Substreams-powered Subgraph [manifest/schema listos]
@@ -141,11 +142,10 @@ Firehose block
 
 Implementar el pipeline real mínimo para una sola red:
 
-1. Implementar la ventana persistente de `LIQUIDITY_DRAIN_EVENT`.
-2. Reemplazar o complementar `observed_assets` con una fuente validada de `totalAssets()` cuando el vault use estrategias externas.
-3. Desplegar el Subgraph en Subgraph Studio y validar una query GraphQL real.
-4. Crear un dashboard mínimo con tabla de salud, radar de incidentes y detalle de una bóveda.
-5. Probar una anomalía reproducible en un entorno controlado y documentarla como simulación.
+1. Reemplazar o complementar `observed_assets` con una fuente validada de `totalAssets()` cuando el vault use estrategias externas.
+2. Desplegar el Subgraph en Subgraph Studio y validar una query GraphQL real.
+3. Crear un dashboard mínimo con tabla de salud, radar de incidentes y detalle de una bóveda.
+4. Probar una anomalía reproducible en un entorno controlado y documentarla como simulación.
 
 ## Pedido de revisión para otro agente
 
