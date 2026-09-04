@@ -18,7 +18,7 @@ La idea para ETHOnline 2026 es crear una infraestructura reutilizable que:
 
 El repositorio estaba prácticamente vacío: solo tenía un `README.md` con el título `Argus4626`.
 
-Inicialmente no existían Substreams, Subgraph, frontend ni MCP. En la rama de trabajo ya se añadió el primer módulo real de Substreams; Subgraph, frontend y MCP siguen pendientes.
+Inicialmente no existían Substreams, Subgraph, frontend ni MCP. El módulo real de Substreams y el adaptador estándar de Subgraph ya están implementados; frontend y MCP siguen pendientes.
 
 ## Cambios realizados
 
@@ -33,7 +33,8 @@ Inicialmente no existían Substreams, Subgraph, frontend ni MCP. En la rama de t
 - Se añadió `store_vault_state`, que acumula por bóveda los deltas de `observed_assets` y `total_supply`.
 - Se añadió `map_state_changes`, que convierte los deltas del store en una salida Protobuf para diagnóstico.
 - Se añadió `graph_out`, que emite `EntityChanges` compatibles con Graph Node para `Vault`, `VaultSnapshot` y `SecurityAlert`.
-- Se creó el esquema y manifest de un Substreams-powered Subgraph en `subgraph/`.
+- Se creó un Subgraph EVM estándar en `subgraph/` para desplegarlo en Subgraph Studio.
+- Se añadió el mapping AssemblyScript y las dependencias de Graph CLI/Graph TS para indexar los eventos ERC-4626 directamente.
 - Se añadieron buckets de retiros de 60 segundos y una ventana móvil de 60 buckets para `LIQUIDITY_DRAIN_EVENT`.
 
 ### Invariante de inflation/donation
@@ -104,7 +105,7 @@ cargo run
 Resultado esperado:
 
 ```text
-9 tests passed
+10 tests passed
 Argus4626 ok: donation/inflation invariant detected
 ```
 
@@ -123,7 +124,8 @@ Firehose block
   -> store_vault_state: observed_assets, total_supply y withdrawal buckets [implementado]
   -> map_state_changes: deltas normalizados [implementado]
   -> graph_out: Vault, VaultSnapshot y SecurityAlert como EntityChanges [implementado]
-  -> Substreams-powered Subgraph [manifest/schema listos]
+  -> The Graph Market: consumo del paquete Substreams [validado en vivo]
+  -> Standard EVM Subgraph: eventos ERC-4626 para Subgraph Studio [implementado]
   -> dashboard web
   -> MCP/agente opcional
 ```
@@ -137,13 +139,14 @@ Firehose block
 5. La alerta actual solo contiene tipo y severidad. El pipeline real deberá agregar dirección de bóveda, bloque, timestamp, transacción, métrica y descripción.
 6. El dashboard visual todavía no existe. Debe ser la interfaz principal de la demo; el MCP sería una capa adicional para consultas de agentes.
 7. Las alertas deben presentarse como anomalías sospechosas, no como prueba definitiva de un exploit.
+8. Studio no acepta el adaptador `substreams/graph-entities` usado originalmente. `graph_out` se conserva como salida reutilizable de Substreams y Studio recibe un Subgraph EVM estándar.
 
 ## Próximo paso recomendado
 
 Implementar el pipeline real mínimo para una sola red:
 
 1. Reemplazar o complementar `observed_assets` con una fuente validada de `totalAssets()` cuando el vault use estrategias externas.
-2. Desplegar el Subgraph en Subgraph Studio y validar una query GraphQL real.
+2. Desplegar el Subgraph EVM estándar en Subgraph Studio y validar una query GraphQL real.
 3. Crear un dashboard mínimo con tabla de salud, radar de incidentes y detalle de una bóveda.
 4. Probar una anomalía reproducible en un entorno controlado y documentarla como simulación.
 

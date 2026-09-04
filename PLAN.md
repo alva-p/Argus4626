@@ -295,13 +295,14 @@ Salida mínima: `substreams run` devuelve eventos reales con bóveda, bloque y t
 - etiquetar `CRITICAL`/`WARNING`;
 - evitar llamar “attack” a una señal sospechosa.
 
-### Fase 5 — Substreams-powered Subgraph
+### Fase 5 — Standard EVM Subgraph in Studio
 
 **Commit:** `feat: expose Argus data through GraphQL`
 
-- generar/adaptar `graph_out`;
-- definir schema mínimo;
-- construir y desplegar en Studio;
+- conservar `graph_out` como salida reutilizable del paquete Substreams;
+- definir el schema ERC-4626 normalizado;
+- indexar eventos directamente con `ethereum/contract` y mappings AssemblyScript;
+- construir y desplegar el Subgraph estándar en Studio;
 - ejecutar una query GraphQL real;
 - documentar endpoint sin subir credenciales.
 

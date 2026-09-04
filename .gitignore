@@ -1,5 +1,9 @@
 /target/
 /build/
+/generated/
+/subgraph/generated/
+/subgraph/build/
+/subgraph/node_modules/
 /src/abi/erc4626.rs
 /src/pb/.last_generated_hash
 *.spkg
