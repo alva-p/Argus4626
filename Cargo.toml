@@ -1,0 +1,8 @@
+[package]
+name = "argus4626"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+primitive-types = "0.13"
+uint = "0.10"
