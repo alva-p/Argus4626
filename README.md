@@ -1,6 +1,6 @@
 # Argus4626
 
-### An open ERC-4626 vault watchdog powered by The Graph and Substreams
+### An open ERC-4626 vault watchdog powered by The Graph Market and Subgraph Studio
 
 Argus4626 turns the common ERC-4626 interface into a reusable observability and security pipeline. It watches heterogeneous vaults, normalizes their activity, tracks state between blocks, and prepares the data for a GraphQL dashboard that explains suspicious behavior with on-chain evidence.
 
@@ -23,34 +23,25 @@ The current MVP:
 - Tracks observed assets and share supply with a stateful Substreams store.
 - Computes a deterministic share-price ratio without floating-point arithmetic.
 - Implements inflation/donation and liquidity-drain invariant checks.
-- Emits `Vault` and `VaultSnapshot` entities through `graph_out` using the Graph Node `EntityChanges` format.
-- Provides a Substreams-powered Subgraph manifest ready for Graph CLI validation and Studio deployment.
+- Emits reusable `EntityChanges` through `graph_out` for Substreams consumers.
+- Provides a standard EVM Subgraph for Subgraph Studio with the same normalized vault model.
 
 The dashboard is the next product layer: it will turn this indexed data into a cross-protocol health matrix, historical charts, and an incident radar.
 
 ## The demo in one minute
 
 ```text
-Firehose block
-      │
-      ▼
-map_events
-  ERC-4626 events + underlying asset transfers
-      │
-      ▼
-store_vault_state
-  observed assets + total share supply
-      │
-      ▼
-graph_out
-  Vault + VaultSnapshot EntityChanges
-      │
-      ▼
-Substreams-powered Subgraph
-      │
-      ▼
-Argus dashboard
-  cross-protocol health + evidence-backed incidents
+Firehose block ──► Substreams package ──► The Graph Market
+                     │
+                     ├── stateful metrics
+                     ├── invariant watchdog
+                     └── reusable EntityChanges output
+
+Ethereum Mainnet ──► Standard EVM Subgraph ──► Subgraph Studio GraphQL
+                                              │
+                                              ▼
+                                      Argus dashboard
+                               cross-protocol health + evidence
 ```
 
 The visual story is simple:
@@ -83,8 +74,11 @@ flowchart TD
     B[ Ethereum Mainnet / Firehose ] --> E[ map_events ]
     E --> S[ store_vault_state ]
     S --> O[ graph_out ]
-    O --> G[ Substreams-powered Subgraph ]
-    G --> D[ Argus Dashboard ]
+    O --> M[ The Graph Market ]
+    B --> G[ Standard EVM Subgraph ]
+    G --> ST[ Subgraph Studio ]
+    M --> D[ Argus Dashboard ]
+    ST --> D
     S --> W[ Invariant Watchdog ]
     W --> O
 ```
@@ -109,10 +103,11 @@ Liquidity-drain detection uses the same integer-only approach for withdrawals ex
 
 ### Graph output
 
-`graph_out` emits the official `sf.substreams.sink.entity.v1.EntityChanges` protobuf shape. The Subgraph schema currently exposes:
+`graph_out` emits the official `sf.substreams.sink.entity.v1.EntityChanges` protobuf shape for reusable Substreams consumers. The standard EVM Subgraph in Studio exposes:
 
 - `Vault`: protocol labels and latest observed state.
 - `VaultSnapshot`: block-level history for charting and forensic inspection.
+- `SecurityAlert`: evidence-backed inflation anomalies.
 
 ## Quickstart
 
@@ -167,6 +162,7 @@ substreams run \
 ### Validate the Subgraph manifest
 
 ```bash
+npx --yes @graphprotocol/graph-cli@0.98.1 codegen subgraph/subgraph.yaml
 npx --yes @graphprotocol/graph-cli@0.98.1 build subgraph/subgraph.yaml
 ```
 
@@ -181,8 +177,10 @@ npx --yes @graphprotocol/graph-cli@0.98.1 build subgraph/subgraph.yaml
 │   ├── entity_changes.rs        Minimal EntityChanges helpers
 │   └── lib.rs                   Substreams map, store, and graph_out modules
 ├── subgraph/
-│   ├── schema.graphql           Normalized Vault and VaultSnapshot entities
-│   └── subgraph.yaml            Substreams-powered Subgraph manifest
+│   ├── schema.graphql           Normalized vault and alert entities
+│   ├── src/mapping.ts           Standard EVM event mappings
+│   ├── package.json             Graph CLI and AssemblyScript dependencies
+│   └── subgraph.yaml            Subgraph Studio manifest
 ├── substreams.yaml              Package and module graph
 ├── PLAN.md                      Hackathon execution plan
 └── PROJECT_CONTEXT.md           Technical handoff and decisions
@@ -196,8 +194,8 @@ npx --yes @graphprotocol/graph-cli@0.98.1 build subgraph/subgraph.yaml
 | Stateful vault aggregation | Implemented |
 | Integer-only invariant core | Implemented and tested |
 | `graph_out` EntityChanges | Implemented and live-tested on the initial block |
-| Subgraph schema and manifest | Built successfully with Graph CLI |
-| Security alerts as Graph entities | Next integration |
+| Standard EVM Subgraph for Studio | Built successfully with Graph CLI |
+| Security alerts in the Substreams watchdog | Implemented and tested |
 | Dashboard UI | Next product layer |
 | MCP/agent interface | Optional after the dashboard |
 
@@ -213,8 +211,8 @@ Argus4626 is built for the ETHOnline 2026 **The Graph — Best Use of Composable
 
 1. A reusable Rust Substreams module processes live blockchain data.
 2. A stateful store computes comparable vault metrics across protocols.
-3. `graph_out` feeds a Substreams-powered Subgraph.
-4. One normalized GraphQL model powers the visual experience.
+3. A standard EVM Subgraph in Studio exposes the normalized GraphQL model.
+4. The dashboard makes the Substreams and Subgraph roles visible in one experience.
 5. Every incident links back to a block, metric change, and transaction.
 
 ## Links

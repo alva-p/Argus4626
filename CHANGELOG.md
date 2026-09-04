@@ -1,5 +1,15 @@
 # Cambios de Argus4626
 
+## 2026-09-04 — Studio-compatible EVM Subgraph
+
+- Se reemplazó el adaptador `substreams/graph-entities`, rechazado actualmente por Subgraph Studio.
+- Se añadió un Subgraph EVM estándar para indexar directamente eventos ERC-4626.
+- Se incorporó el mapping AssemblyScript y las dependencias reproducibles de Graph CLI/Graph TS.
+- Se mantiene `graph_out` como salida reutilizable del pipeline Substreams para The Graph Market.
+- Se actualizaron README, plan y contexto para documentar la arquitectura compatible.
+
+Resultado: codegen y build del Subgraph estándar completados correctamente.
+
 ## 2026-09-04 — Primer MVP
 
 - Se instaló Substreams CLI `v1.22.0` en `/home/alvap/.local/bin`.
