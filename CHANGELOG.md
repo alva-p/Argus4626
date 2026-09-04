@@ -54,3 +54,14 @@ Resultado: 9 tests exitosos y paquete Substreams generado con `map_events → st
 - `substreams run graph_out` procesó el bloque inicial real y emitió tres entidades `Vault` en formato `EntityChanges`.
 
 Resultado: 10 tests exitosos, paquete compilado y salida Graph Node validada sobre datos reales.
+
+## 2026-09-04 — SecurityAlert en graph_out
+
+- Se creó la rama dedicada `feat/security-alerts-graph`.
+- Se conectó `map_events` a `graph_out` para conservar la evidencia de la transacción que origina una anomalía.
+- Se integró `detect_inflation` al flujo de estado por bóveda.
+- Se añadió la entidad inmutable `SecurityAlert` con severidad, tipo, descripción, bloque, timestamp y transacción.
+- Se mantiene la detección como señal de anomalía donation/inflation, no como prueba definitiva de exploit.
+- Se dejó fuera `LIQUIDITY_DRAIN_EVENT` hasta implementar correctamente su ventana temporal persistente.
+
+Resultado: 10 tests exitosos, manifest Graph válido y `graph_out` ejecutado live con el nuevo schema.
