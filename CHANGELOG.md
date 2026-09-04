@@ -65,3 +65,13 @@ Resultado: 10 tests exitosos, paquete compilado y salida Graph Node validada sob
 - Se dejó fuera `LIQUIDITY_DRAIN_EVENT` hasta implementar correctamente su ventana temporal persistente.
 
 Resultado: 10 tests exitosos, manifest Graph válido y `graph_out` ejecutado live con el nuevo schema.
+
+## 2026-09-04 — Ventana móvil de liquidez
+
+- Se creó la rama dedicada `feat/liquidity-window`.
+- Se añadieron buckets de retiros de 60 segundos al store por bóveda.
+- `graph_out` suma los últimos 60 buckets para una ventana móvil de aproximadamente 60 minutos.
+- Se conectó `LIQUIDITY_DRAIN_EVENT` a `SecurityAlert` con severidad `WARNING` y evidencia de la transacción.
+- La granularidad de un minuto queda documentada como una decisión explícita del MVP.
+
+Resultado: 10 tests exitosos, paquete compilado, manifest Graph válido y ejecución live completada.
