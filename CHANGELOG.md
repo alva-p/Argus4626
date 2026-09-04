@@ -1,5 +1,11 @@
 # Cambios de Argus4626
 
+## 2026-09-04 — Argus brand system
+
+- Se incorporó el logo oficial de Argus4626 en sus variantes horizontal, icon y favicon.
+- Se reemplazó el monograma temporal del sidebar por el lockup de marca.
+- Se configuró el favicon del dashboard y se mantuvo la identidad cyan/gold sobre fondo obsidiana.
+
 ## 2026-09-04 — Dashboard shell
 
 - Se creó la interfaz `Argus4626 — Vault Intelligence` con una estética de consola operativa.
