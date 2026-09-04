@@ -4,6 +4,9 @@
 /subgraph/generated/
 /subgraph/build/
 /subgraph/node_modules/
+/frontend/node_modules/
+/frontend/.next/
+/frontend/.env.local
 /src/abi/erc4626.rs
 /src/pb/.last_generated_hash
 *.spkg

@@ -26,7 +26,7 @@ The current MVP:
 - Emits reusable `EntityChanges` through `graph_out` for Substreams consumers.
 - Provides a standard EVM Subgraph for Subgraph Studio with the same normalized vault model.
 
-The dashboard is the next product layer: it will turn this indexed data into a cross-protocol health matrix, historical charts, and an incident radar.
+The dashboard is the product layer: it turns this indexed data into a cross-protocol health matrix, historical charts, and an incident radar.
 
 ## The demo in one minute
 
@@ -166,6 +166,19 @@ npx --yes @graphprotocol/graph-cli@0.98.1 codegen subgraph/subgraph.yaml
 npx --yes @graphprotocol/graph-cli@0.98.1 build subgraph/subgraph.yaml
 ```
 
+### Run the dashboard
+
+The dashboard reads the live Subgraph Studio endpoint on the server side. Copy the example environment file, then start the local app:
+
+```bash
+cd frontend
+cp .env.example .env.local
+npm install
+npm run dev
+```
+
+Open `http://localhost:3000`. The public-facing app uses its own Argus interface; the provider URL remains configuration rather than part of the user experience.
+
 ## Repository layout
 
 ```text
@@ -181,6 +194,10 @@ npx --yes @graphprotocol/graph-cli@0.98.1 build subgraph/subgraph.yaml
 │   ├── src/mapping.ts           Standard EVM event mappings
 │   ├── package.json             Graph CLI and AssemblyScript dependencies
 │   └── subgraph.yaml            Subgraph Studio manifest
+├── frontend/
+│   ├── src/app/page.tsx          Vault observatory and incident radar
+│   ├── src/app/globals.css       Product visual system
+│   └── src/lib/graph.ts          Server-side GraphQL data access
 ├── substreams.yaml              Package and module graph
 ├── PLAN.md                      Hackathon execution plan
 └── PROJECT_CONTEXT.md           Technical handoff and decisions
@@ -196,7 +213,7 @@ npx --yes @graphprotocol/graph-cli@0.98.1 build subgraph/subgraph.yaml
 | `graph_out` EntityChanges | Implemented and live-tested on the initial block |
 | Standard EVM Subgraph for Studio | Built successfully with Graph CLI |
 | Security alerts in the Substreams watchdog | Implemented and tested |
-| Dashboard UI | Next product layer |
+| Dashboard UI | Implemented with live GraphQL data |
 | MCP/agent interface | Optional after the dashboard |
 
 ## Known MVP boundaries
