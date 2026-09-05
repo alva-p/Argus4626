@@ -150,6 +150,25 @@ Implementar el pipeline real mínimo para una sola red:
 3. Crear un dashboard mínimo con tabla de salud, radar de incidentes y detalle de una bóveda.
 4. Probar una anomalía reproducible en un entorno controlado y documentarla como simulación.
 
+## Validación en vivo — 2026-09-05
+
+Comandos probados desde la raíz del repositorio con el token local en `.substreams.env` (no versionado):
+
+```bash
+cargo build --release --target wasm32-unknown-unknown
+substreams build substreams.yaml
+substreams run -e mainnet.eth.streamingfast.io:443 argus4626-v0.1.0.spkg map_events -s 18941135 -t +5 -o jsonl
+substreams run -e mainnet.eth.streamingfast.io:443 argus4626-v0.1.0.spkg graph_out -s 18941135 -t +1 -o jsonl
+```
+
+Resultado:
+
+- `substreams build` genera `argus4626-v0.1.0.spkg` sin errores.
+- `map_events` procesó 5 bloques reales sin emitir eventos (no hubo `Deposit`/`Withdraw`/`Transfer` de las tres bóvedas en ese rango puntual); es el comportamiento esperado para una ventana tan corta.
+- `graph_out` procesó el bloque `18941135` y emitió `EntityChanges` reales con las tres entidades `Vault` (`OPERATION_CREATE`) para Steakhouse USDC, Flagship ETH y yvUSDC, con metadata estática correcta (`protocol`, `assetSymbol`, `assetDecimals`) y contadores en cero por ser el bloque inicial.
+
+Pendiente: correr `graph_out` sobre un rango más largo que contenga una actividad real (depósito/retiro) para confirmar `totalAssets`/`totalSupply`/`sharePrice` no nulos, y decidir cómo mostrar en la demo el aporte de The Graph Market sin fingir una conexión directa del frontend a Substreams (el frontend consume el Standard EVM Subgraph, no `graph_out` directamente).
+
 ## Pedido de revisión para otro agente
 
 Revisar este repositorio y responder:
