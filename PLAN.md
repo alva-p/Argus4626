@@ -2,7 +2,7 @@
 
 **Estado:** activo  
 **Fecha:** 2026-09-04  
-**Rama:** `feat/argus4626-mvp`  
+**Rama actual:** `main`
 **Objetivo:** entregar una demo end-to-end competitiva para ETHOnline 2026.
 
 ## 1. Norte del proyecto
@@ -425,12 +425,85 @@ Mostrar que el mismo módulo se aplica a distintas bóvedas ERC-4626 sin indexad
 - [ ] merge desde la rama de trabajo hacia `main`;
 - [ ] documentación separando lo implementado de lo futuro.
 
-## 15. Próxima acción
+## 15. Estado — sesión 2026-09-05
 
-Crear el commit:
+### Prioridad 1 — Mejorar la arquitectura visual del README
+
+**Pendiente, queda para mañana.**
+
+Sí: usar [excalidraw.com](https://excalidraw.com/) para crear un diagrama limpio y exportarlo como SVG. El archivo fuente debe quedar versionado para poder iterarlo:
 
 ```text
-feat: initialize EVM Substreams pipeline
+docs/argus4626-architecture.excalidraw
+docs/argus4626-architecture.svg
 ```
 
-Debe contener solamente el esqueleto generado y compilable de Substreams. No agregar todavía frontend, MCP, APY ni deployment.
+El diagrama debe mostrar, con jerarquía visual clara:
+
+```text
+Ethereum Mainnet / Firehose
+          │
+          ├── Substreams Rust → The Graph Market
+          │                         │
+          │                         └── state, signals, EntityChanges
+          │
+          └── Standard EVM Subgraph → Subgraph Studio
+                                            │
+                                            ▼
+                                      Argus Dashboard
+```
+
+Requisitos de diseño:
+
+- diferenciar ingestion, computation, indexing y presentation;
+- hacer visibles los dos productos de The Graph y sus roles;
+- usar la paleta del logo: obsidian, cyan y antique gold;
+- mostrar que Morpho y Yearn entran por la misma frontera ERC-4626;
+- evitar texto técnico pequeño y flechas cruzadas;
+- reemplazar el bloque Mermaid del README solo después de revisar el SVG en GitHub.
+
+### Prioridad 2 — Confirmar el pipeline vivo de Substreams
+
+**Completada.**
+
+- [x] autenticar el CLI usando el token local, sin exponerlo;
+- [x] ejecutar `map_events` sobre un rango corto de Ethereum Mainnet;
+- [x] ejecutar `graph_out` y confirmar `EntityChanges` reales;
+- [x] guardar en `PROJECT_CONTEXT.md` el comando probado y el resultado resumido;
+- [ ] decidir cómo hacer visible en la demo el aporte de The Graph Market sin fingir una conexión del frontend — **sigue pendiente**, ver Prioridad 4.
+
+Detalle del resultado en `PROJECT_CONTEXT.md` § "Validación en vivo — 2026-09-05".
+
+### Prioridad 3 — Construir una vista forense real
+
+**Completada**, en la rama `feat/vault-forensics`:
+
+- [x] ruta de detalle `/vault/[id]`;
+- [x] historial de `VaultSnapshot` con share price;
+- [x] explicación de la alerta en lenguaje simple;
+- [x] bloque, timestamp, hash y enlace a Etherscan;
+- [x] navegación desde la tabla y desde Incident Radar.
+
+Probado con build, `tsc --noEmit` y dev server contra el endpoint real de Subgraph Studio.
+
+### Prioridad 4 — Preparar el caso de demo
+
+**Investigada, sin resolver. Queda para la próxima sesión.**
+
+Hallazgos de hoy:
+
+- Los tres vaults trackeados (Steakhouse USDC, Flagship ETH, yvUSDC) están sincronizados hasta el bloque `25914197` con **cero `SecurityAlert` en toda su historia real**. Son vaults legítimos y nunca dispararon el invariante de donation/inflation.
+- Se investigó un incidente real de 2026 (exploit de sDOLA en LlamaLend, marzo 2026, bloque `24566937`), pero es un ataque de **manipulación de oráculo atómica** (`redeem`+`redeposit` dentro de la misma transacción), no una donation persistente con supply constante entre snapshots. No calza con nuestro invariante y agregar sDOLA como cuarto vault sería scope creep (pipeline y Subgraph nuevos).
+- Decisión: no forzar un caso que no calza. La vía que sigue en pie es la que ya estaba en el plan de riesgos (§13): **caso reproducible en Sepolia** (depósito real + transferencia directa del asset = donation real, con bloque y tx reales en testnet).
+
+Pendiente para la próxima sesión:
+
+- [ ] confirmar si el usuario ya tiene wallet con ETH de testnet y vault ERC-4626 candidato en Sepolia, o si hay que desplegar uno;
+- [ ] si hay que desplegar: definir si vale la pena un pipeline Substreams/Subgraph separado para Sepolia solo para la demo, o si alcanza con una prueba controlada fuera del pipeline principal;
+- [ ] ejecutar el depósito y la donation reales, capturar bloque/tx;
+- [ ] confirmar que la alerta aparece con datos reales (no mocks);
+- [ ] actualizar el guion de tres minutos con esa evidencia concreta.
+
+### Regla de trabajo
+
+Cada prioridad importante tendrá su propia rama y PR hacia `main`. Primero se valida el resultado técnico, después se hace squash merge. No abrir MCP, APY ni multicadena hasta cerrar estas cuatro prioridades.
