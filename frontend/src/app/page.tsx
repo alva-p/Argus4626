@@ -1,17 +1,6 @@
 import { getDashboardData } from "@/lib/graph";
+import { formatUnits, shortAddress } from "@/lib/format";
 import type { SecurityAlert, Vault } from "@/types";
-
-function formatUnits(value: string, decimals: number): string {
-  const raw = BigInt(value);
-  const scale = BigInt(10) ** BigInt(decimals);
-  const whole = raw / scale;
-  const fraction = (raw % scale).toString().padStart(decimals, "0").replace(/0+$/, "");
-  return fraction ? `${whole}.${fraction.slice(0, 4)}` : whole.toString();
-}
-
-function shortAddress(address: string): string {
-  return `${address.slice(0, 6)}…${address.slice(-4)}`;
-}
 
 function statusFor(vault: Vault, alerts: SecurityAlert[]): "MONITORED" | "WATCH" | "CRITICAL" {
   const vaultAlerts = alerts.filter((alert) => alert.vault.id === vault.id);
@@ -93,7 +82,7 @@ function Dashboard({ data }: { data: Awaited<ReturnType<typeof getDashboardData>
                   {data.vaults.map((vault) => {
                     const status = statusFor(vault, data.alerts);
                     return <tr key={vault.id}>
-                      <td><div className="vault-name">{vault.name}</div><div className="vault-id">{shortAddress(vault.id)}</div></td>
+                      <td><a className="vault-name" href={`/vault/${vault.id}`}>{vault.name}</a><div className="vault-id">{shortAddress(vault.id)}</div></td>
                       <td><span className="protocol">{vault.protocol}</span></td>
                       <td>{vault.assetSymbol}</td>
                       <td className="number">{vault.sharePrice}</td>
@@ -112,7 +101,7 @@ function Dashboard({ data }: { data: Awaited<ReturnType<typeof getDashboardData>
             {data.alerts.length === 0 ? <div className="empty">No security alerts in the indexed window.</div> : <div className="incidents">
               {data.alerts.map((alert) => <article className="incident" key={alert.id}>
                 <div className={`severity ${alert.severity.toLowerCase()}`}>{alert.severity}</div>
-                <div><div className="incident-title">{alert.alertType}</div><div className="incident-sub">{alert.vault.name} · {alert.description}</div></div>
+                <div><a className="incident-title" href={`/vault/${alert.vault.id}`}>{alert.alertType}</a><div className="incident-sub">{alert.vault.name} · {alert.description}</div></div>
                 <div className="incident-block">BLOCK {alert.blockNumber}</div>
                 <a className="incident-link" href={`https://etherscan.io/tx/${alert.transactionHash}`} target="_blank" rel="noreferrer">VIEW TRANSACTION ↗</a>
               </article>)}

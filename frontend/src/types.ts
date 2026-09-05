@@ -34,3 +34,18 @@ export type DashboardData = {
   vaults: Vault[];
   alerts: SecurityAlert[];
 };
+
+export type VaultSnapshot = {
+  id: string;
+  blockNumber: string;
+  timestamp: string;
+  totalAssets: string;
+  totalSupply: string;
+  sharePrice: string;
+};
+
+export type VaultDetail = Omit<Vault, "snapshots"> & {
+  assetAddress: string;
+  history: VaultSnapshot[];
+  alerts: SecurityAlert[];
+};
