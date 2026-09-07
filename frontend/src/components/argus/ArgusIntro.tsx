@@ -5,6 +5,10 @@ import { useEffect, useRef, useState } from "react";
 
 const IMG_W = 1672;
 const IMG_H = 941;
+// Must match .argus-intro-img's object-position vertical value in globals.css —
+// the top eye sits close to the image's top edge, so cover-mode crops are
+// biased upward (mostly trimming the bottom) instead of centered.
+const IMG_POSITION_Y = 0.08;
 
 const HALO = { x: 65.5, y: 23, size: 36 };
 const CHEST = { x: 66.5, y: 68.5, size: 25 };
@@ -38,10 +42,10 @@ export function ArgusIntro({ targetId }: { targetId: string }) {
     if (!el) return;
     const update = () => {
       const { width: cw, height: ch } = el.getBoundingClientRect();
-      const scale = Math.min(cw / IMG_W, ch / IMG_H);
+      const scale = Math.max(cw / IMG_W, ch / IMG_H);
       const w = IMG_W * scale;
       const h = IMG_H * scale;
-      setFrame({ w, h, x: (cw - w) / 2, y: (ch - h) / 2 });
+      setFrame({ w, h, x: (cw - w) / 2, y: (ch - h) * IMG_POSITION_Y });
     };
     update();
     const ro = new ResizeObserver(update);
@@ -117,7 +121,7 @@ export function ArgusIntro({ targetId }: { targetId: string }) {
           style={{ transform: `translate3d(${parallax.x * -0.3}px, ${parallax.y * -0.3}px, 0)` }}
         >
           <Image
-            src="/argus/argus-hero-v2.png"
+            src="/argus/argus-hero-v3.png"
             alt="Argus Panoptes guarding the ARGUS4626 ERC-4626 observability network"
             fill
             priority

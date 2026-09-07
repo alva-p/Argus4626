@@ -129,6 +129,11 @@ function Dashboard({ data }: { data: Awaited<ReturnType<typeof getDashboardData>
           </section>
 
           <div className="footer-note">DATA SOURCES / THE GRAPH SUBGRAPH STUDIO + THE GRAPH MARKET / LAST INDEXED {data.block}</div>
+          <div className="footer-links">
+            <a href="https://github.com/alva-p" target="_blank" rel="noreferrer">GITHUB</a>
+            <span>·</span>
+            <a href="https://x.com/pimmpi_" target="_blank" rel="noreferrer">TWITTER</a>
+          </div>
         </div>
       </main>
     </div>
