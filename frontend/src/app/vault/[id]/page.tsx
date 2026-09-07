@@ -1,5 +1,6 @@
 import { getVaultDetail } from "@/lib/graph";
-import { formatUnits, shortAddress, formatTimestamp } from "@/lib/format";
+import { formatUnits, formatCompact, formatSharePrice, shortAddress, formatTimestamp, computeRiskScore, riskBand } from "@/lib/format";
+import { LineChart, Meter } from "@/components/charts";
 import type { SecurityAlert } from "@/types";
 
 const ALERT_EXPLANATIONS: Record<string, string> = {
@@ -26,11 +27,22 @@ export default async function VaultPage({ params }: { params: Promise<{ id: stri
     );
   }
 
+  const score = computeRiskScore(vault.alerts);
+  const band = riskBand(score);
+  const price = formatSharePrice(vault.sharePrice);
+  const chartPoints = [...vault.history]
+    .sort((a, b) => Number(a.blockNumber) - Number(b.blockNumber))
+    .map((snapshot) => ({
+      x: Number(snapshot.blockNumber),
+      y: Number(formatSharePrice(snapshot.sharePrice).short),
+      label: `Block ${snapshot.blockNumber}`,
+    }));
+
   return (
     <main className="content">
       <a className="section-meta" href="/">← Back to overview</a>
 
-      <section className="hero">
+      <section className="hero-compact" style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-end", gap: 20, flexWrap: "wrap" }}>
         <div>
           <div className="kicker">{vault.protocol} · ERC-4626</div>
           <h1>{vault.name}</h1>
@@ -38,13 +50,25 @@ export default async function VaultPage({ params }: { params: Promise<{ id: stri
             {shortAddress(vault.id)} · asset {vault.assetSymbol} ({shortAddress(vault.assetAddress)})
           </p>
         </div>
+        <div className="card" style={{ padding: "16px 20px" }}>
+          <div className="metric-label" title="100 minus 35 per critical alert and 12 per warning alert on this vault">VAULT HEALTH</div>
+          <div style={{ marginTop: 10, display: "flex", alignItems: "center", gap: 12 }}>
+            <Meter score={score} size="lg" />
+            <span className={`status ${band.className}`}>{band.label}</span>
+          </div>
+        </div>
       </section>
 
       <section className="metrics" aria-label="Vault metrics">
-        <div className="metric"><div className="metric-label">Share price</div><div className="metric-value number">{vault.sharePrice}</div><div className="metric-note">{vault.assetSymbol} per share</div></div>
-        <div className="metric"><div className="metric-label">Total assets</div><div className="metric-value number">{formatUnits(vault.totalAssets, vault.assetDecimals)}</div><div className="metric-note">{vault.assetSymbol}</div></div>
-        <div className="metric"><div className="metric-label">Total supply</div><div className="metric-value number">{formatUnits(vault.totalSupply, vault.shareDecimals)}</div><div className="metric-note">{vault.symbol}</div></div>
-        <div className="metric"><div className="metric-label">Last updated</div><div className="metric-value number">{vault.lastUpdatedBlock}</div><div className="metric-note">block</div></div>
+        <div className="metric"><div className="metric-label" title="Underlying assets per one vault share">Share price</div><div className="metric-value number" title={price.full}>{price.short}</div><div className="metric-note">{vault.assetSymbol} per share</div></div>
+        <div className="metric"><div className="metric-label" title="Total underlying assets held by the vault">Total assets</div><div className="metric-value number" title={`${vault.totalAssets} (raw units)`}>{formatCompact(vault.totalAssets, vault.assetDecimals)}</div><div className="metric-note">{vault.assetSymbol}</div></div>
+        <div className="metric"><div className="metric-label" title="Total vault shares outstanding">Total supply</div><div className="metric-value number" title={`${vault.totalSupply} (raw units)`}>{formatCompact(vault.totalSupply, vault.shareDecimals)}</div><div className="metric-note">{vault.symbol}</div></div>
+        <div className="metric"><div className="metric-label" title="Most recent block reflected in this vault's state">Last updated</div><div className="metric-value number">{vault.lastUpdatedBlock}</div><div className="metric-note">block</div></div>
+      </section>
+
+      <section className="card" style={{ marginBottom: 30 }}>
+        <div className="section-head"><h2 className="section-title">Share Price History</h2><span className="section-meta">{vault.history.length} SNAPSHOTS</span></div>
+        <LineChart points={chartPoints} unit={vault.assetSymbol} />
       </section>
 
       <section id="incidents">
@@ -65,7 +89,7 @@ export default async function VaultPage({ params }: { params: Promise<{ id: stri
       </section>
 
       <section id="history">
-        <div className="section-head"><h2 className="section-title">Share price history</h2><span className="section-meta">{vault.history.length} SNAPSHOTS</span></div>
+        <div className="section-head"><h2 className="section-title">Snapshot table</h2><span className="section-meta">{vault.history.length} SNAPSHOTS</span></div>
         <div className="table-wrap">
           <table>
             <thead><tr><th>Block</th><th>Timestamp</th><th>Share price</th><th>Total assets</th><th>Total supply</th></tr></thead>
@@ -74,9 +98,9 @@ export default async function VaultPage({ params }: { params: Promise<{ id: stri
                 <tr key={snapshot.id}>
                   <td className="number">{snapshot.blockNumber}</td>
                   <td className="number">{formatTimestamp(snapshot.timestamp)}</td>
-                  <td className="number">{snapshot.sharePrice}</td>
-                  <td className="number">{formatUnits(snapshot.totalAssets, vault.assetDecimals)}</td>
-                  <td className="number">{formatUnits(snapshot.totalSupply, vault.shareDecimals)}</td>
+                  <td className="number" title={snapshot.sharePrice}>{formatSharePrice(snapshot.sharePrice).short}</td>
+                  <td className="number" title={`${snapshot.totalAssets} (raw units)`}>{formatUnits(snapshot.totalAssets, vault.assetDecimals)}</td>
+                  <td className="number" title={`${snapshot.totalSupply} (raw units)`}>{formatUnits(snapshot.totalSupply, vault.shareDecimals)}</td>
                 </tr>
               ))}
             </tbody>
