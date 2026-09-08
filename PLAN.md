@@ -496,13 +496,23 @@ Hallazgos de hoy:
 - Se investigó un incidente real de 2026 (exploit de sDOLA en LlamaLend, marzo 2026, bloque `24566937`), pero es un ataque de **manipulación de oráculo atómica** (`redeem`+`redeposit` dentro de la misma transacción), no una donation persistente con supply constante entre snapshots. No calza con nuestro invariante y agregar sDOLA como cuarto vault sería scope creep (pipeline y Subgraph nuevos).
 - Decisión: no forzar un caso que no calza. La vía que sigue en pie es la que ya estaba en el plan de riesgos (§13): **caso reproducible en Sepolia** (depósito real + transferencia directa del asset = donation real, con bloque y tx reales en testnet).
 
-Pendiente para la próxima sesión:
+Decidido en la sesión 2026-09-06: desplegar un vault propio (`DemoVault`, ERC-4626 plano sobre OpenZeppelin) más un asset de prueba (`DemoAsset`) en Sepolia, reproduciendo el ataque de primer depositante documentado por OpenZeppelin/Zellic/MixBytes. Sin pipeline Substreams/Subgraph nuevo para Sepolia (scope creep); la evidencia se muestra vía Etherscan + `cast call` + el propio `detect_inflation` de Rust.
 
-- [ ] confirmar si el usuario ya tiene wallet con ETH de testnet y vault ERC-4626 candidato en Sepolia, o si hay que desplegar uno;
-- [ ] si hay que desplegar: definir si vale la pena un pipeline Substreams/Subgraph separado para Sepolia solo para la demo, o si alcanza con una prueba controlada fuera del pipeline principal;
-- [ ] ejecutar el depósito y la donation reales, capturar bloque/tx;
-- [ ] confirmar que la alerta aparece con datos reales (no mocks);
-- [ ] actualizar el guion de tres minutos con esa evidencia concreta.
+Runbook completo, paso a paso, con el guion de video actualizado: **[`docs/deploy-video.md`](docs/deploy-video.md)**.
+
+Ya hecho hoy: Foundry instalado, proyecto `sepolia-demo/` con `DemoAsset.sol`/`DemoVault.sol` escritos y compilando.
+
+Progreso sesión 2026-09-08 (detalle completo en el runbook y en `PROJECT_CONTEXT.md` § "Caso Sepolia — evidencia real"):
+
+- [x] completar `sepolia-demo/.env` y confirmar fondos de testnet;
+- [x] deployar y ejecutar el caso (depósito + donation reales, capturar bloque/tx);
+- [x] correr los valores reales por `detect_inflation` y confirmar `CRITICAL`;
+- [x] `subgraph-sepolia/` deployado en Studio (`argus-4626-sepolia-demo`), query real confirmando `SecurityAlert` CRITICAL con la tx real de la donation;
+- [x] `/vault/sepolia-demo` en el frontend, `VaultDetailView` compartido con `/vault/[id]`;
+- [x] documentar la evidencia en `PROJECT_CONTEXT.md`;
+- [x] diagrama de arquitectura en excalidraw.com → `docs/argus4626-architecture.svg`;
+- [ ] grabar el video de ~3:15 con el guion actualizado en `docs/deploy-video.md` (palabra por palabra, inglés simple);
+- [ ] revisión final: README, secrets fuera de git, PR a `main`.
 
 ### Regla de trabajo
 

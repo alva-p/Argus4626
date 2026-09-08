@@ -1,0 +1,424 @@
+<title>One Schema, Two Graph Products</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600;700&display=swap">
+<style>
+  :root {
+    --bg: #090b0e;
+    --panel: #10141a;
+    --panel-2: #151b21;
+    --line: #26303a;
+    --muted: #8b96a1;
+    --text: #edf1f4;
+    --cyan: #60d7d2;
+    --gold: #f4bd68;
+    --font-display: 'IBM Plex Sans', system-ui, -apple-system, sans-serif;
+    --font-mono: 'IBM Plex Mono', ui-monospace, 'SFMono-Regular', monospace;
+  }
+
+  * { box-sizing: border-box; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--font-display);
+    margin: 0;
+  }
+
+  .page {
+    max-width: 1080px;
+    margin: 0 auto;
+    padding: 56px 32px 80px;
+  }
+
+  header.plate {
+    display: flex;
+    gap: 20px;
+    align-items: flex-start;
+    padding-bottom: 28px;
+    border-bottom: 1px solid var(--line);
+    margin-bottom: 36px;
+  }
+
+  .eye {
+    flex: none;
+    margin-top: 6px;
+  }
+
+  .eyebrow {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: .16em;
+    text-transform: uppercase;
+    color: var(--cyan);
+    margin: 0 0 10px;
+  }
+
+  h1 {
+    font-size: clamp(28px, 3.4vw, 40px);
+    font-weight: 700;
+    letter-spacing: -.02em;
+    line-height: 1.08;
+    margin: 0 0 12px;
+    text-wrap: balance;
+  }
+
+  .dek {
+    font-size: 14px;
+    color: var(--muted);
+    max-width: 62ch;
+    line-height: 1.6;
+    margin: 0 0 14px;
+  }
+
+  .honesty-note {
+    font-size: 13px;
+    line-height: 1.65;
+    color: var(--text);
+    max-width: 66ch;
+    margin: 0;
+    padding: 12px 16px;
+    background: var(--panel);
+    border: 1px solid var(--line);
+    border-left: 3px solid var(--gold);
+  }
+
+  .honesty-note strong { color: var(--gold); font-weight: 600; }
+
+  figure.diagram {
+    margin: 0 0 22px;
+    background: var(--panel);
+    border: 1px solid var(--line);
+    padding: 28px 20px 18px;
+  }
+
+  figure.diagram svg { width: 100%; height: auto; display: block; }
+
+  figcaption {
+    font-size: 12.5px;
+    color: var(--muted);
+    line-height: 1.6;
+    max-width: 74ch;
+    margin: 18px auto 0;
+    padding-top: 16px;
+    border-top: 1px solid var(--line);
+  }
+
+  .lane-label {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: .14em;
+    fill: var(--muted);
+  }
+
+  .box-title {
+    font-family: var(--font-mono);
+    font-weight: 600;
+    letter-spacing: .01em;
+  }
+
+  .box-sub {
+    font-family: var(--font-mono);
+    fill: var(--muted);
+  }
+
+  .arrow-label {
+    font-family: var(--font-mono);
+    font-size: 10px;
+    letter-spacing: .04em;
+  }
+
+  .legend {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 22px;
+    padding: 16px 20px;
+    margin-bottom: 40px;
+    background: var(--panel);
+    border: 1px solid var(--line);
+    font-family: var(--font-mono);
+    font-size: 11.5px;
+    color: var(--muted);
+  }
+
+  .legend-item { display: flex; align-items: center; gap: 8px; }
+  .legend-swatch { width: 22px; height: 3px; flex: none; border-radius: 2px; }
+  .legend-swatch.dashed { background: none; border-top: 2px dashed var(--gold); height: 0; }
+
+  .spec {
+    margin-top: 8px;
+  }
+
+  .spec h2 {
+    font-size: 13px;
+    font-weight: 600;
+    letter-spacing: .12em;
+    text-transform: uppercase;
+    color: var(--muted);
+    font-family: var(--font-mono);
+    margin: 0 0 16px;
+    padding-bottom: 10px;
+    border-bottom: 1px solid var(--line);
+  }
+
+  .spec-lane {
+    margin-bottom: 22px;
+  }
+
+  .spec-lane-name {
+    font-family: var(--font-mono);
+    font-size: 10.5px;
+    letter-spacing: .14em;
+    color: var(--cyan);
+    text-transform: uppercase;
+    margin: 0 0 10px;
+  }
+
+  .spec-rows {
+    display: grid;
+    gap: 1px;
+    background: var(--line);
+    border: 1px solid var(--line);
+  }
+
+  .spec-row {
+    display: grid;
+    grid-template-columns: 14px 1fr;
+    gap: 14px;
+    align-items: start;
+    background: var(--panel);
+    padding: 12px 16px;
+  }
+
+  .spec-dot {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    margin-top: 4px;
+  }
+
+  .spec-box-title {
+    font-family: var(--font-mono);
+    font-size: 12.5px;
+    font-weight: 600;
+    color: var(--text);
+    margin: 0 0 4px;
+  }
+
+  .spec-box-sub {
+    font-family: var(--font-mono);
+    font-size: 11.5px;
+    color: var(--muted);
+    line-height: 1.5;
+    margin: 0;
+  }
+
+  footer.note {
+    margin-top: 44px;
+    padding-top: 18px;
+    border-top: 1px solid var(--line);
+    font-family: var(--font-mono);
+    font-size: 11px;
+    color: var(--muted);
+    letter-spacing: .02em;
+  }
+
+  @media (max-width: 640px) {
+    .page { padding: 36px 18px 60px; }
+    header.plate { flex-direction: column; }
+  }
+</style>
+
+<div class="page">
+
+  <header class="plate">
+    <svg class="eye" width="30" height="30" viewBox="0 0 30 30" role="img" aria-label="Argus eye mark">
+      <circle cx="15" cy="15" r="13.5" fill="none" stroke="var(--cyan)" stroke-width="1.4" opacity="0.5" />
+      <circle cx="15" cy="15" r="8.5" fill="none" stroke="var(--cyan)" stroke-width="1.4" />
+      <circle cx="15" cy="15" r="3" fill="var(--gold)" />
+    </svg>
+    <div>
+      <p class="eyebrow">Argus4626 · Architecture Reference Sketch</p>
+      <h1>One Schema, Two Graph Products</h1>
+      <p class="dek">A working sketch to redraw by hand in Excalidraw for <code>docs/argus4626-architecture.svg</code> — this page is the reference, not the final asset.</p>
+      <p class="honesty-note">The live dashboard is queried from a <strong>Standard EVM Subgraph</strong> in Subgraph Studio, not from Substreams' <code>graph_out</code> directly — Studio doesn't accept the Substreams-powered adapter today. The diagram shows both as real, parallel tracks off the same entry point, instead of drawing one continuous pipe that overstates what's wired up.</p>
+    </div>
+  </header>
+
+  <figure class="diagram">
+    <svg viewBox="0 0 1040 660" role="img" aria-label="Ethereum Mainnet feeds one ERC-4626 boundary shared by Morpho and Yearn vaults, which forks into two parallel Graph tracks: a Substreams Rust module that proves the reusable bounty module, and a Standard EVM Subgraph in Subgraph Studio that is the actual live source for the Argus Dashboard.">
+      <defs>
+        <marker id="arrow-muted" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+          <path d="M0,0 L10,5 L0,10 z" fill="var(--muted)" />
+        </marker>
+        <marker id="arrow-gold" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+          <path d="M0,0 L10,5 L0,10 z" fill="var(--gold)" />
+        </marker>
+        <marker id="arrow-cyan" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+          <path d="M0,0 L10,5 L0,10 z" fill="var(--cyan)" />
+        </marker>
+        <linearGradient id="boundary-stroke" x1="0" y1="0" x2="1" y2="0">
+          <stop offset="0%" stop-color="var(--cyan)" />
+          <stop offset="100%" stop-color="var(--gold)" />
+        </linearGradient>
+      </defs>
+
+      <!-- lane dividers -->
+      <line x1="20" y1="160" x2="1020" y2="160" stroke="var(--line)" stroke-width="1" />
+      <line x1="20" y1="340" x2="1020" y2="340" stroke="var(--line)" stroke-width="1" />
+      <line x1="20" y1="490" x2="1020" y2="490" stroke="var(--line)" stroke-width="1" />
+
+      <!-- lane labels -->
+      <text class="lane-label" x="50" y="90" text-anchor="middle" transform="rotate(-90 50 90)">INGESTION</text>
+      <text class="lane-label" x="50" y="250" text-anchor="middle" transform="rotate(-90 50 250)">COMPUTATION</text>
+      <text class="lane-label" x="50" y="415" text-anchor="middle" transform="rotate(-90 50 415)">INDEXING</text>
+      <text class="lane-label" x="50" y="570" text-anchor="middle" transform="rotate(-90 50 570)">PRESENTATION</text>
+
+      <!-- A1: Ethereum Mainnet -->
+      <rect x="160" y="65" width="220" height="60" rx="6" fill="var(--panel-2)" stroke="var(--line)" stroke-width="1.2" />
+      <text class="box-title" x="270" y="90" text-anchor="middle" font-size="12.5" fill="var(--text)">ETHEREUM MAINNET</text>
+      <text class="box-sub" x="270" y="107" text-anchor="middle" font-size="10.5">Firehose block stream</text>
+
+      <!-- A1 -> A2 -->
+      <line x1="380" y1="95" x2="552" y2="95" stroke="var(--muted)" stroke-width="1.3" marker-end="url(#arrow-muted)" />
+
+      <!-- A2: ERC-4626 boundary -->
+      <rect x="560" y="55" width="340" height="80" rx="6" fill="var(--panel-2)" stroke="url(#boundary-stroke)" stroke-width="1.6" />
+      <text class="box-title" x="730" y="76" text-anchor="middle" font-size="12.5" fill="var(--text)">ERC-4626 BOUNDARY</text>
+      <rect x="574" y="86" width="96" height="20" rx="3" fill="var(--panel)" stroke="var(--line)" />
+      <text class="box-sub" x="622" y="99.5" text-anchor="middle" font-size="8.3" letter-spacing="0.03em">STEAKHOUSE USDC</text>
+      <rect x="678" y="86" width="96" height="20" rx="3" fill="var(--panel)" stroke="var(--line)" />
+      <text class="box-sub" x="726" y="99.5" text-anchor="middle" font-size="8.3" letter-spacing="0.03em">FLAGSHIP ETH</text>
+      <rect x="782" y="86" width="96" height="20" rx="3" fill="var(--panel)" stroke="var(--line)" />
+      <text class="box-sub" x="830" y="99.5" text-anchor="middle" font-size="8.3" letter-spacing="0.03em">YVUSDC</text>
+      <text class="box-sub" x="730" y="122" text-anchor="middle" font-size="9.5">two protocols, one shared entry point</text>
+
+      <!-- fork -->
+      <path d="M650,135 L325,170" fill="none" stroke="var(--gold)" stroke-width="1.3" marker-end="url(#arrow-gold)" />
+      <rect x="422" y="146" width="120" height="15" fill="var(--panel)" />
+      <text class="arrow-label" x="482" y="157" text-anchor="middle" fill="var(--gold)">map_vault_events</text>
+
+      <path d="M820,135 L755,170" fill="none" stroke="var(--cyan)" stroke-width="1.3" marker-end="url(#arrow-cyan)" />
+      <rect x="722" y="146" width="130" height="15" fill="var(--panel)" />
+      <text class="arrow-label" x="787" y="157" text-anchor="middle" fill="var(--cyan)">ethereum/contract</text>
+
+      <!-- B1: Substreams -->
+      <rect x="160" y="195" width="330" height="90" rx="6" fill="var(--panel-2)" stroke="var(--gold)" stroke-width="1.3" />
+      <text class="box-title" x="325" y="219" text-anchor="middle" font-size="12.5" fill="var(--gold)">SUBSTREAMS · RUST → WASM</text>
+      <text class="box-sub" x="325" y="240" text-anchor="middle" font-size="10.2">map → store → map_snapshots_and_alerts</text>
+      <text class="box-sub" x="325" y="256" text-anchor="middle" font-size="10.2">core: detect_inflation, detect_liquidity_drain</text>
+      <text class="box-sub" x="325" y="274" text-anchor="middle" font-size="9.5" fill="var(--muted)">reusable across any ERC-4626 vault</text>
+
+      <!-- B2: AssemblyScript mappings -->
+      <rect x="610" y="195" width="290" height="90" rx="6" fill="var(--panel-2)" stroke="var(--cyan)" stroke-width="1.3" />
+      <text class="box-title" x="755" y="219" text-anchor="middle" font-size="12.5" fill="var(--cyan)">ASSEMBLYSCRIPT MAPPINGS</text>
+      <text class="box-sub" x="755" y="240" text-anchor="middle" font-size="10.2">handleDeposit · handleWithdraw</text>
+      <text class="box-sub" x="755" y="256" text-anchor="middle" font-size="10.2">handleAssetTransfer (donation tx)</text>
+      <text class="box-sub" x="755" y="274" text-anchor="middle" font-size="9.5" fill="var(--muted)">same schema, per-vault event wiring</text>
+
+      <!-- B1 -> gold pill -->
+      <line x1="325" y1="285" x2="325" y2="375" stroke="var(--gold)" stroke-width="1.3" marker-end="url(#arrow-gold)" />
+      <rect x="270" y="322" width="110" height="15" fill="var(--panel)" />
+      <text class="arrow-label" x="325" y="333" text-anchor="middle" fill="var(--gold)">spkg deploy</text>
+
+      <!-- B2 -> Subgraph Studio -->
+      <line x1="755" y1="285" x2="755" y2="375" stroke="var(--cyan)" stroke-width="1.3" marker-end="url(#arrow-cyan)" />
+      <rect x="700" y="322" width="110" height="15" fill="var(--panel)" />
+      <text class="arrow-label" x="755" y="333" text-anchor="middle" fill="var(--cyan)">graph deploy</text>
+
+      <!-- graph_out dashed terminator -->
+      <rect x="160" y="375" width="330" height="70" rx="6" fill="none" stroke="var(--gold)" stroke-width="1.3" stroke-dasharray="5 4" />
+      <text class="box-title" x="325" y="399" text-anchor="middle" font-size="12" fill="var(--gold)">GRAPH_OUT → ENTITYCHANGES</text>
+      <text class="box-sub" x="325" y="418" text-anchor="middle" font-size="10">validated live on real mainnet blocks</text>
+      <line x1="490" y1="410" x2="556" y2="410" stroke="var(--gold)" stroke-width="1.3" stroke-dasharray="3 4" />
+      <circle cx="562" cy="410" r="5" fill="var(--bg)" stroke="var(--gold)" stroke-width="1.4" />
+      <text class="box-sub" x="574" y="414" font-size="10" fill="var(--muted)">not wired into the live UI (yet)</text>
+
+      <!-- Subgraph Studio -->
+      <rect x="610" y="375" width="290" height="70" rx="6" fill="var(--panel-2)" stroke="var(--cyan)" stroke-width="1.3" />
+      <text class="box-title" x="755" y="397" text-anchor="middle" font-size="12" fill="var(--cyan)">SUBGRAPH STUDIO</text>
+      <text class="box-sub" x="755" y="415" text-anchor="middle" font-size="9.6">argus-4626-ethereum-mainnet</text>
+      <text class="box-sub" x="755" y="429" text-anchor="middle" font-size="9.6">argus-4626-sepolia-demo</text>
+
+      <!-- Studio -> Dashboard -->
+      <line x1="755" y1="445" x2="755" y2="525" stroke="var(--cyan)" stroke-width="1.5" marker-end="url(#arrow-cyan)" />
+      <rect x="695" y="475" width="120" height="15" fill="var(--panel)" />
+      <text class="arrow-label" x="755" y="486" text-anchor="middle" fill="var(--cyan)">GraphQL query</text>
+
+      <!-- Argus Dashboard -->
+      <rect x="590" y="525" width="330" height="105" rx="6" fill="var(--panel-2)" stroke="var(--cyan)" stroke-width="2" />
+      <text class="box-title" x="755" y="551" text-anchor="middle" font-size="14" fill="var(--cyan)" font-weight="700">ARGUS DASHBOARD</text>
+      <text class="box-sub" x="755" y="572" text-anchor="middle" font-size="10.5">/  overview</text>
+      <text class="box-sub" x="755" y="588" text-anchor="middle" font-size="10.5">/vault/[id]</text>
+      <text class="box-sub" x="755" y="604" text-anchor="middle" font-size="10.5">/vault/sepolia-demo</text>
+      <text class="box-sub" x="755" y="620" text-anchor="middle" font-size="9" fill="var(--muted)">what's on screen in the demo</text>
+    </svg>
+
+    <figcaption>Ethereum Mainnet feeds one <strong style="color:var(--text)">ERC-4626 boundary</strong> shared by Morpho and Yearn vaults. From there the pipeline forks: <strong style="color:var(--gold)">Substreams</strong> (gold) is the reusable Rust module the bounty asks for, validated live against real blocks. <strong style="color:var(--cyan)">The Standard EVM Subgraph → Subgraph Studio</strong> (cyan) is the separate track that actually feeds the Argus Dashboard on screen.</figcaption>
+  </figure>
+
+  <div class="legend">
+    <div class="legend-item"><span class="legend-swatch" style="background:var(--cyan)"></span>Queried by the live dashboard</div>
+    <div class="legend-item"><span class="legend-swatch" style="background:var(--gold)"></span>Reusable Substreams module — bounty proof, validated live</div>
+    <div class="legend-item"><span class="legend-swatch dashed"></span>Produced, not (yet) wired into the UI</div>
+  </div>
+
+  <div class="spec">
+    <h2>Box copy — for the Excalidraw redraw</h2>
+
+    <div class="spec-lane">
+      <p class="spec-lane-name">Ingestion</p>
+      <div class="spec-rows">
+        <div class="spec-row">
+          <span class="spec-dot" style="background:var(--muted)"></span>
+          <div><p class="spec-box-title">ETHEREUM MAINNET</p><p class="spec-box-sub">Firehose block stream</p></div>
+        </div>
+        <div class="spec-row">
+          <span class="spec-dot" style="background:linear-gradient(90deg,var(--cyan),var(--gold))"></span>
+          <div><p class="spec-box-title">ERC-4626 BOUNDARY</p><p class="spec-box-sub">Chips: Steakhouse USDC · Flagship ETH · yvUSDC — subtext: "two protocols, one shared entry point"</p></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="spec-lane">
+      <p class="spec-lane-name">Computation</p>
+      <div class="spec-rows">
+        <div class="spec-row">
+          <span class="spec-dot" style="background:var(--gold)"></span>
+          <div><p class="spec-box-title">SUBSTREAMS · RUST → WASM</p><p class="spec-box-sub">map → store → map_snapshots_and_alerts · core: detect_inflation, detect_liquidity_drain · reusable across any ERC-4626 vault</p></div>
+        </div>
+        <div class="spec-row">
+          <span class="spec-dot" style="background:var(--cyan)"></span>
+          <div><p class="spec-box-title">ASSEMBLYSCRIPT MAPPINGS</p><p class="spec-box-sub">handleDeposit · handleWithdraw · handleAssetTransfer (donation tx) · same schema, per-vault event wiring</p></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="spec-lane">
+      <p class="spec-lane-name">Indexing</p>
+      <div class="spec-rows">
+        <div class="spec-row">
+          <span class="spec-dot" style="border:1.5px dashed var(--gold); background:transparent"></span>
+          <div><p class="spec-box-title">GRAPH_OUT → ENTITYCHANGES</p><p class="spec-box-sub">validated live on real mainnet blocks · dashed, terminates with "not wired into the live UI (yet)"</p></div>
+        </div>
+        <div class="spec-row">
+          <span class="spec-dot" style="background:var(--cyan)"></span>
+          <div><p class="spec-box-title">SUBGRAPH STUDIO</p><p class="spec-box-sub">argus-4626-ethereum-mainnet · argus-4626-sepolia-demo</p></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="spec-lane">
+      <p class="spec-lane-name">Presentation</p>
+      <div class="spec-rows">
+        <div class="spec-row">
+          <span class="spec-dot" style="background:var(--cyan)"></span>
+          <div><p class="spec-box-title">ARGUS DASHBOARD</p><p class="spec-box-sub">/ overview · /vault/[id] · /vault/sepolia-demo — the box the audience actually sees in the demo</p></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <footer class="note">docs/architecture-reference.html · reference sketch for docs/argus4626-architecture.svg · palette matches frontend/src/app/globals.css (obsidian / cyan / antique gold)</footer>
+
+</div>

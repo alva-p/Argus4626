@@ -93,8 +93,8 @@ const vaultQuery = `
   }
 `;
 
-export async function getVaultDetail(id: string): Promise<VaultDetail | null> {
-  const response = await fetch(endpoint, {
+export async function getVaultDetail(id: string, endpointOverride?: string): Promise<VaultDetail | null> {
+  const response = await fetch(endpointOverride ?? endpoint, {
     method: "POST",
     headers: { "content-type": "application/json" },
     body: JSON.stringify({ query: vaultQuery, variables: { id } }),
