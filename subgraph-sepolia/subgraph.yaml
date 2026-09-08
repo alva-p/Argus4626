@@ -1,0 +1,61 @@
+specVersion: 1.0.0
+description: Argus4626 Sepolia forensics demo — first-depositor donation/inflation attack on a single DemoVault
+repository: https://github.com/alva-p/Argus4626
+
+schema:
+  file: ./schema.graphql
+
+dataSources:
+  - kind: ethereum/contract
+    name: DemoVault
+    network: sepolia
+    source:
+      address: '0x099CaB8F6B806B99CDAb9FB120ae8D684F8E6Ddd'
+      abi: ArgusVault
+      startBlock: 11662339
+    mapping:
+      kind: ethereum/events
+      apiVersion: 0.0.7
+      language: wasm/assemblyscript
+      entities:
+        - Vault
+        - VaultSnapshot
+        - SecurityAlert
+      abis:
+        - name: ArgusVault
+          file: ./abi/erc4626.json
+      eventHandlers:
+        - event: Deposit(indexed address,indexed address,uint256,uint256)
+          handler: handleDeposit
+        - event: Withdraw(indexed address,indexed address,indexed address,uint256,uint256)
+          handler: handleWithdraw
+      blockHandlers:
+        - handler: handleOnce
+          filter:
+            kind: once
+      file: ./src/mapping.ts
+
+  - kind: ethereum/contract
+    name: DemoAsset
+    network: sepolia
+    source:
+      address: '0x7FeCAe6e0C360E1695376Fe74A7f23993C9842b2'
+      abi: ArgusERC20
+      startBlock: 11662339
+    mapping:
+      kind: ethereum/events
+      apiVersion: 0.0.7
+      language: wasm/assemblyscript
+      entities:
+        - Vault
+        - VaultSnapshot
+        - SecurityAlert
+      abis:
+        - name: ArgusERC20
+          file: ./abi/erc20.json
+        - name: ArgusVault
+          file: ./abi/erc4626.json
+      eventHandlers:
+        - event: Transfer(indexed address,indexed address,uint256)
+          handler: handleAssetTransfer
+      file: ./src/mapping.ts
