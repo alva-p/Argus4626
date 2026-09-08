@@ -169,6 +169,49 @@ Resultado:
 
 Pendiente: correr `graph_out` sobre un rango más largo que contenga una actividad real (depósito/retiro) para confirmar `totalAssets`/`totalSupply`/`sharePrice` no nulos, y decidir cómo mostrar en la demo el aporte de The Graph Market sin fingir una conexión directa del frontend a Substreams (el frontend consume el Standard EVM Subgraph, no `graph_out` directamente).
 
+## Caso Sepolia — evidencia real (2026-09-08)
+
+Reproducción real, en Sepolia, del ataque de "primer depositante" (first-depositor donation/inflation) sobre un `ERC4626` plano de OpenZeppelin. Detalle completo del runbook en `docs/deploy-video.md`.
+
+Contratos (wallet deployer `0xE482E762e6430Ce2E43258A4681040786675d167`):
+
+- `DemoAsset` (ERC-20, 18 decimales, `mint()` público): `0x7FeCAe6e0C360E1695376Fe74A7f23993C9842b2`
+- `DemoVault` (`ERC4626` sobre `DemoAsset`, sin depósito inicial de admin): `0x099CaB8F6B806B99CDAb9FB120ae8D684F8E6Ddd`
+
+Secuencia real:
+
+| Paso | Bloque | Tx |
+|---|---|---|
+| Deploy `DemoAsset` | — | `0xd0e35341c6bb0fdf001d5455482d789c4dfce381f5f9fcff8f55bc68a5411c5b` |
+| Deploy `DemoVault` | — | `0xb60986422299f6bd682b502f3cedb042196f846c6442a8c706cf1dd33d4e4acf` |
+| Depósito real (1000 aUSDC → 1000 shares) | `11662340` | `0x2b9cb3092b13a40bd0285ff79a3142ae62e449a5e4fa54865902aabf3218fd03` |
+| **Donation** (transfer directo de 200 aUSDC al vault, sin pasar por `deposit()`) — **tx del incidente** | `11662343` | `0x0748967ad9b718686a9270dc5a415804cab7b0e63bd51dbb62142232beef4fc2` |
+
+Estados capturados on-chain (`cast call`, 18 decimales):
+
+- Antes: `totalAssets = 1000e18`, `totalSupply = 1000e18`, `sharePrice = 1.0000`.
+- Después: `totalAssets = 1200e18`, `totalSupply = 1000e18` (sin cambios), `sharePrice ≈ 1.2000` → **+20%**, por encima del umbral del 5%.
+
+Sanity check con el invariante real (`examples/sepolia_case.rs`, `cargo run --example sepolia_case`):
+
+```
+Some(Alert { alert_type: DonationInflation, severity: Critical })
+```
+
+### Subgraph de Sepolia
+
+Segundo Subgraph Studio, `argus-4626-sepolia-demo`, en `subgraph-sepolia/` (mismo `schema.graphql` que `subgraph/`, sin cambios). A diferencia del subgraph de mainnet, agrega un segundo `dataSource` sobre `DemoAsset` que escucha su evento `Transfer` — necesario porque una donation (transfer directo del asset) no emite ningún evento en el vault mismo, solo `Deposit`/`Withdraw` lo hacen. Sin ese segundo dataSource, la alerta nunca se generaría con la tx real de la donation como evidencia.
+
+- Endpoint: `https://api.studio.thegraph.com/query/1758674/argus-4626-sepolia-demo/v0.1.0`
+- Query real confirmada: `Vault` con `sharePrice: "1.2"`, `SecurityAlert` con `severity: CRITICAL`, `alertType: DONATION_INFLATION_ATTACK_DETECTED`, `transactionHash` = la tx de la donation de arriba.
+
+### Frontend
+
+- JSX de `/vault/[id]/page.tsx` extraído a `frontend/src/components/vault-detail-view.tsx` (`VaultDetailView`), reutilizado por ambas rutas.
+- `getVaultDetail(id, endpointOverride?)` en `frontend/src/lib/graph.ts` acepta un endpoint opcional.
+- Ruta nueva `frontend/src/app/vault/sepolia-demo/page.tsx`, fija al vault y endpoint de Sepolia vía `ARGUS_SEPOLIA_GRAPH_ENDPOINT` (agregada a `.env.example`/`.env.local`).
+- Verificado con `tsc --noEmit` limpio y ambas rutas devolviendo 200 contra el dev server real (`/vault/sepolia-demo` muestra la card `CRITICAL` con la tx real; `/vault/[id]` de mainnet sigue funcionando igual).
+
 ## Pedido de revisión para otro agente
 
 Revisar este repositorio y responder:
