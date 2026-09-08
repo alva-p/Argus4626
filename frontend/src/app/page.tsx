@@ -12,6 +12,7 @@ const NAV = [
   { href: "#vaults", label: "Vault registry", icon: "M4 4h16v16H4zM4 10h16M10 10v10" },
   { href: "#incidents", label: "Incident radar", icon: "M12 3l9 16H3z M12 9v5 M12 17h.01" },
   { href: "#pipeline", label: "Data pipeline", icon: "M4 6h16M4 12h16M4 18h16" },
+  { href: "/vault/sepolia-demo", label: "Demo", icon: "M9 3h6M10 3v5l-5 9a2 2 0 001.7 3h10.6a2 2 0 001.7-3l-5-9V3" },
 ];
 
 function ridge(alerts: SecurityAlert[], vault: Vault) {

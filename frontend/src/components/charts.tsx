@@ -19,31 +19,52 @@ export function Sparkline({ values }: { values: number[] }) {
 
 type SeriesPoint = { x: number; y: number; label: string };
 
+function niceTicks(min: number, max: number, count: number): number[] {
+  if (min === max) return [min];
+  const step = (max - min) / (count - 1);
+  return Array.from({ length: count }, (_, i) => min + step * i);
+}
+
+function formatTick(value: number): string {
+  if (Math.abs(value) >= 1000) return new Intl.NumberFormat("en-US", { notation: "compact", maximumFractionDigits: 1 }).format(value);
+  return value.toFixed(value < 10 ? 4 : 2);
+}
+
 export function LineChart({ points, unit }: { points: SeriesPoint[]; unit: string }) {
   if (points.length < 2) {
     return <div className="empty">Not enough snapshots yet to plot a trend.</div>;
   }
   const width = 760;
-  const height = 220;
-  const padding = 12;
+  const height = 240;
+  const padLeft = 56;
+  const padRight = 16;
+  const padTop = 16;
+  const padBottom = 30;
+  const plotW = width - padLeft - padRight;
+  const plotH = height - padTop - padBottom;
+
   const xs = points.map((p) => p.x);
   const ys = points.map((p) => p.y);
   const minX = Math.min(...xs);
   const maxX = Math.max(...xs);
-  const minY = Math.min(...ys);
-  const maxY = Math.max(...ys);
+  const dataMinY = Math.min(...ys);
+  const dataMaxY = Math.max(...ys);
+  const yPad = (dataMaxY - dataMinY || dataMaxY || 1) * 0.15;
+  const minY = dataMinY - yPad;
+  const maxY = dataMaxY + yPad;
   const spanX = maxX - minX || 1;
   const spanY = maxY - minY || 1;
 
-  const scaled = points.map((p) => ({
-    ...p,
-    sx: padding + ((p.x - minX) / spanX) * (width - padding * 2),
-    sy: height - padding - ((p.y - minY) / spanY) * (height - padding * 2),
-  }));
+  const toX = (x: number) => padLeft + ((x - minX) / spanX) * plotW;
+  const toY = (y: number) => padTop + plotH - ((y - minY) / spanY) * plotH;
 
+  const scaled = points.map((p) => ({ ...p, sx: toX(p.x), sy: toY(p.y) }));
   const line = scaled.map((p) => `${p.sx},${p.sy}`).join(" ");
-  const area = `${padding},${height - padding} ${line} ${width - padding},${height - padding}`;
+  const area = `${toX(minX)},${padTop + plotH} ${line} ${toX(maxX)},${padTop + plotH}`;
   const step = Math.max(1, Math.floor(scaled.length / 60));
+
+  const yTicks = niceTicks(minY, maxY, 4);
+  const xTicks = points.length > 2 ? [points[0], points[Math.floor(points.length / 2)], points[points.length - 1]] : points;
 
   return (
     <svg className="line-chart" viewBox={`0 0 ${width} ${height}`} role="img" aria-label="Share price history">
@@ -53,10 +74,28 @@ export function LineChart({ points, unit }: { points: SeriesPoint[]; unit: strin
           <stop offset="100%" stopColor="var(--cyan)" stopOpacity="0" />
         </linearGradient>
       </defs>
+
+      {yTicks.map((t, i) => (
+        <g key={i}>
+          <line x1={padLeft} x2={width - padRight} y1={toY(t)} y2={toY(t)} stroke="var(--line)" strokeWidth="1" strokeDasharray={i === 0 ? undefined : "3 4"} />
+          <text x={padLeft - 8} y={toY(t)} textAnchor="end" dominantBaseline="middle" className="chart-axis-label">
+            {formatTick(t)}
+          </text>
+        </g>
+      ))}
+
+      <line x1={padLeft} x2={padLeft} y1={padTop} y2={padTop + plotH} stroke="var(--line)" strokeWidth="1" />
+
+      {xTicks.map((p, i) => (
+        <text key={i} x={toX(p.x)} y={height - 8} textAnchor={i === 0 ? "start" : i === xTicks.length - 1 ? "end" : "middle"} className="chart-axis-label">
+          {`#${p.x}`}
+        </text>
+      ))}
+
       <polygon points={area} fill="url(#lineFill)" stroke="none" />
       <polyline points={line} fill="none" stroke="var(--cyan)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
       {scaled.filter((_, i) => i % step === 0 || i === scaled.length - 1).map((p, i) => (
-        <circle key={i} cx={p.sx} cy={p.sy} r="7" fill="transparent" stroke="none">
+        <circle key={i} cx={p.sx} cy={p.sy} r="3.5" fill="var(--bg)" stroke="var(--cyan)" strokeWidth="2">
           <title>{`${p.label}\n${p.y} ${unit}`}</title>
         </circle>
       ))}
