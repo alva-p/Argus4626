@@ -1,106 +1,117 @@
-# Cambios de Argus4626
+# Argus4626 changelog
 
 ## 2026-09-04 — Argus brand system
 
-- Se incorporó el logo oficial de Argus4626 en sus variantes horizontal, icon y favicon.
-- Se reemplazó el monograma temporal del sidebar por el lockup de marca.
-- Se configuró el favicon del dashboard y se mantuvo la identidad cyan/gold sobre fondo obsidiana.
+- Added the official Argus4626 logo in horizontal, icon, and favicon variants.
+- Replaced the temporary sidebar monogram with the brand lockup.
+- Configured the dashboard favicon and kept the cyan/gold-on-obsidian identity.
 
 ## 2026-09-04 — Dashboard shell
 
-- Se creó la interfaz `Argus4626 — Vault Intelligence` con una estética de consola operativa.
-- Se conectó el dashboard al endpoint real de Subgraph Studio con actualización cada 15 segundos.
-- Se añadieron `Vault Observatory`, `Incident Radar` y el panel de linaje de datos.
-- Se mantuvieron fuera del primer corte las métricas sin fuente real y las abstracciones visuales innecesarias.
+- Built the `Argus4626 — Vault Intelligence` interface with an operator-console feel.
+- Connected the dashboard to the real Subgraph Studio endpoint, refreshing every 15 seconds.
+- Added `Vault Observatory`, `Incident Radar`, and the data-lineage panel.
+- Kept metrics without a real data source, and unnecessary visual abstractions, out of the first cut.
 
 ## 2026-09-04 — Studio-compatible EVM Subgraph
 
-- Se reemplazó el adaptador `substreams/graph-entities`, rechazado actualmente por Subgraph Studio.
-- Se añadió un Subgraph EVM estándar para indexar directamente eventos ERC-4626.
-- Se incorporó el mapping AssemblyScript y las dependencias reproducibles de Graph CLI/Graph TS.
-- Se mantiene `graph_out` como salida reutilizable del pipeline Substreams para The Graph Market.
-- Se actualizaron README, plan y contexto para documentar la arquitectura compatible.
+- Replaced the `substreams/graph-entities` adapter, currently rejected by Subgraph Studio.
+- Added a standard EVM Subgraph to index ERC-4626 events directly.
+- Added the AssemblyScript mapping and reproducible Graph CLI/Graph TS dependencies.
+- Kept `graph_out` as the reusable Substreams pipeline output for The Graph Market.
+- Updated the README to document the compatible architecture.
 
-Resultado: codegen y build del Subgraph estándar completados correctamente.
+Result: codegen and build of the standard Subgraph completed successfully.
 
 ## 2026-09-04 — Share price decimal normalization
 
-- Se añadió `shareDecimals` al modelo `Vault`.
-- Se corrigió el cálculo de `sharePrice` para soportar activos y shares con distintas precisiones.
-- Se validó el caso `yvUSDC`, que usa 6 decimales tanto para el activo como para las shares.
+- Added `shareDecimals` to the `Vault` model.
+- Fixed `sharePrice` calculation to support assets and shares with different precisions.
+- Validated the `yvUSDC` case, which uses 6 decimals for both the asset and the shares.
 
-## 2026-09-04 — Primer MVP
+## 2026-09-04 — First MVP
 
-- Se instaló Substreams CLI `v1.22.0` en `/home/alvap/.local/bin`.
-- Se instaló el target Rust `wasm32-unknown-unknown` requerido para módulos Substreams.
-- Se definió el proyecto como un watchdog para bóvedas DeFi compatibles con ERC-4626.
-- Se cambió el nombre público de `Delta4626` a `Argus4626`, inspirado en Argos Panoptes, el gigante de la mitología griega asociado con la vigilancia.
-- Se creó el crate Rust `argus4626`.
-- Se implementó `detect_inflation` para detectar un salto del precio por share sin aumento del total supply.
-- Se implementó `detect_liquidity_drain` para detectar retiros que superen el 35% de los activos disponibles en una ventana.
-- Las comparaciones usan `U256` y `U1024`, evitando floats y desbordamientos incluso en los productos teóricos máximos.
-- Se añadieron 8 tests, incluidos casos en el límite de `uint256`.
-- Se añadió una prueba explícita para ignorar un baseline vacío (`totalAssets=0`, `totalSupply=0`).
-- Se añadió un self-check ejecutable con `cargo run`.
-- Se reforzó la aritmética porque `U256 × U256 × basis-points` puede superar 512 bits en el límite teórico.
-- Se añadió el scaffold oficial de Substreams para Ethereum Mainnet.
-- Se implementó `map_events` en Rust/WASM con un decoder estándar para `Deposit`, `Withdraw` y `Transfer`.
-- Se configuraron tres bóvedas reales: dos MetaMorpho y una Yearn, filtradas por un único patrón.
-- Se añadió el esquema Protobuf mínimo y el manifiesto `substreams.yaml` listo para empaquetar.
-- Se instaló `buf` localmente y se generó el paquete `argus4626-v0.1.0.spkg` con `substreams build`.
-- Se documentó la arquitectura prevista: Firehose → Substreams → store → Subgraph → dashboard/MCP.
-- Se aclaró que una donation requiere observar transferencias del asset o cambios de estado adicionales a los eventos `Deposit` y `Withdraw`.
-- Se aclaró que Ethereum y Arbitrum deberán desplegarse como pipelines/subgraphs separados y unificarse desde el frontend.
+- Installed Substreams CLI `v1.22.0` locally.
+- Installed the `wasm32-unknown-unknown` Rust target required for Substreams modules.
+- Defined the project as a watchdog for ERC-4626-compatible DeFi vaults.
+- Renamed the public project from `Delta4626` to `Argus4626`, inspired by Argos Panoptes, the many-eyed giant of Greek mythology associated with vigilance.
+- Created the `argus4626` Rust crate.
+- Implemented `detect_inflation` to catch a share-price jump without a matching total-supply increase.
+- Implemented `detect_liquidity_drain` to catch withdrawals exceeding 35% of available assets in a window.
+- Comparisons use `U256` and `U1024`, avoiding floats and overflow even at the theoretical maximum products.
+- Added 8 tests, including uint256-boundary cases.
+- Added an explicit test to ignore an empty baseline (`totalAssets=0`, `totalSupply=0`).
+- Added a runnable self-check via `cargo run`.
+- Hardened the arithmetic because `U256 × U256 × basis-points` can exceed 512 bits at the theoretical limit.
+- Added the official Substreams scaffold for Ethereum Mainnet.
+- Implemented `map_events` in Rust/WASM with a standard decoder for `Deposit`, `Withdraw`, and `Transfer`.
+- Configured three real vaults: two MetaMorpho and one Yearn, filtered by a single shared pattern.
+- Added the minimal Protobuf schema and the `substreams.yaml` manifest, ready to package.
+- Installed `buf` locally and generated the `argus4626-v0.1.0.spkg` package with `substreams build`.
+- Documented the intended architecture: Firehose → Substreams → store → Subgraph → dashboard/MCP.
+- Noted that detecting a donation requires observing asset transfers or other state changes beyond the `Deposit` and `Withdraw` events.
+- Noted that Ethereum and Arbitrum will need separate pipelines/subgraphs, unified from the frontend.
 
-## Verificación
+## Verification
 
 ```bash
 cargo test
 cargo run
 ```
 
-Resultado: 8 tests exitosos, self-check del watchdog ejecutado correctamente y paquete Substreams generado.
+Result: 8 tests passing, watchdog self-check ran successfully, Substreams package generated.
 
-## 2026-09-04 — Estado por bóveda
+## 2026-09-04 — Per-vault state
 
-- Se añadió `store_vault_state` con acumulación por clave para `observed_assets` y `total_supply`.
-- Se amplió el filtro para observar transferencias del activo subyacente además de eventos emitidos por la bóveda.
-- Se añadió `map_state_changes`, que expone los deltas anteriores y actuales para el siguiente módulo de watchdog.
-- Se corrigió la atribución de transferencias cuando dos bóvedas comparten el mismo activo USDC.
-- Se mantuvo `observed_assets` como proxy explícito: todavía no representa `totalAssets()` cuando existen estrategias externas.
+- Added `store_vault_state` with per-key accumulation for `observed_assets` and `total_supply`.
+- Widened the filter to also observe transfers of the underlying asset, not just vault-emitted events.
+- Added `map_state_changes`, exposing previous and current deltas for the next watchdog module.
+- Fixed transfer attribution when two vaults share the same USDC asset.
+- Kept `observed_assets` as an explicit proxy: it still doesn't represent `totalAssets()` when external strategies are involved.
 
-Resultado: 9 tests exitosos y paquete Substreams generado con `map_events → store_vault_state → map_state_changes`.
+Result: 9 tests passing, Substreams package generated with `map_events → store_vault_state → map_state_changes`.
 
-## 2026-09-04 — Graph out y Subgraph mínimo
+## 2026-09-04 — Graph out and minimal Subgraph
 
-- Se creó la rama dedicada `feat/graph-out-subgraph` para esta integración.
-- Se añadió el protobuf oficial compatible con Graph Node `sf.substreams.sink.entity.v1.EntityChanges`.
-- Se implementó `graph_out` para emitir entidades `Vault` y `VaultSnapshot`.
-- Se añadieron metadatos estáticos de las tres bóvedas Ethereum configuradas.
-- Se añadió cálculo decimal determinista del `sharePrice` sin floats.
-- Se creó `subgraph/schema.graphql` y `subgraph/subgraph.yaml` como Substreams-powered Subgraph.
-- `graph build subgraph/subgraph.yaml` pasó correctamente con Graph CLI `0.98.1`.
-- `substreams run graph_out` procesó el bloque inicial real y emitió tres entidades `Vault` en formato `EntityChanges`.
+- Created a dedicated `feat/graph-out-subgraph` branch for this integration.
+- Added the official Graph-Node-compatible protobuf `sf.substreams.sink.entity.v1.EntityChanges`.
+- Implemented `graph_out` to emit `Vault` and `VaultSnapshot` entities.
+- Added static metadata for the three configured Ethereum vaults.
+- Added deterministic decimal `sharePrice` calculation without floats.
+- Created `subgraph/schema.graphql` and `subgraph/subgraph.yaml` as a Substreams-powered Subgraph.
+- `graph build subgraph/subgraph.yaml` passed with Graph CLI `0.98.1`.
+- `substreams run graph_out` processed the real initial block and emitted three `Vault` entities as `EntityChanges`.
 
-Resultado: 10 tests exitosos, paquete compilado y salida Graph Node validada sobre datos reales.
+Result: 10 tests passing, package compiled, Graph Node output validated against real data.
 
-## 2026-09-04 — SecurityAlert en graph_out
+## 2026-09-04 — SecurityAlert in graph_out
 
-- Se creó la rama dedicada `feat/security-alerts-graph`.
-- Se conectó `map_events` a `graph_out` para conservar la evidencia de la transacción que origina una anomalía.
-- Se integró `detect_inflation` al flujo de estado por bóveda.
-- Se añadió la entidad inmutable `SecurityAlert` con severidad, tipo, descripción, bloque, timestamp y transacción.
-- Se mantiene la detección como señal de anomalía donation/inflation, no como prueba definitiva de exploit.
-- Se dejó fuera `LIQUIDITY_DRAIN_EVENT` hasta implementar correctamente su ventana temporal persistente.
+- Created a dedicated `feat/security-alerts-graph` branch.
+- Connected `map_events` to `graph_out` to preserve the transaction evidence behind each anomaly.
+- Integrated `detect_inflation` into the per-vault state flow.
+- Added the immutable `SecurityAlert` entity with severity, type, description, block, timestamp, and transaction.
+- Kept detection framed as a donation/inflation anomaly signal, not definitive proof of an exploit.
+- Left `LIQUIDITY_DRAIN_EVENT` out until its persistent time window was implemented correctly.
 
-Resultado: 10 tests exitosos, manifest Graph válido y `graph_out` ejecutado live con el nuevo schema.
+Result: 10 tests passing, valid Graph manifest, `graph_out` run live with the new schema.
 
-## 2026-09-04 — Ventana móvil de liquidez
+## 2026-09-04 — Liquidity rolling window
 
-- Se creó la rama dedicada `feat/liquidity-window`.
-- Se añadieron buckets de retiros de 60 segundos al store por bóveda.
-- `graph_out` suma los últimos 60 buckets para una ventana móvil de aproximadamente 60 minutos.
-- Se conectó `LIQUIDITY_DRAIN_EVENT` a `SecurityAlert` con severidad `WARNING` y evidencia de la transacción.
-- La granularidad de un minuto queda documentada como una decisión explícita del MVP.
+- Created a dedicated `feat/liquidity-window` branch.
+- Added 60-second withdrawal buckets to the per-vault store.
+- `graph_out` sums the last 60 buckets for a rolling window of roughly 60 minutes.
+- Connected `LIQUIDITY_DRAIN_EVENT` to `SecurityAlert` with `WARNING` severity and transaction evidence.
+- Documented the one-minute granularity as an explicit MVP decision.
 
-Resultado: 10 tests exitosos, paquete compilado, manifest Graph válido y ejecución live completada.
+Result: 10 tests passing, package compiled, valid Graph manifest, live run completed.
+
+## 2026-09-08 — Sepolia case: real donation/inflation attack
+
+- Reproduced the first-depositor donation/inflation attack on Sepolia against a plain OpenZeppelin `ERC4626` vault: a real deposit followed by a real direct-transfer donation, confirmed `CRITICAL` by `detect_inflation`.
+- Added a second Subgraph Studio deployment (`subgraph-sepolia/`) with an extra `dataSource` on the underlying asset's `Transfer` event — required because a donation never touches the vault's own events.
+- Extracted the vault detail JSX into a shared `VaultDetailView` component and added a dedicated `/vault/sepolia-demo` route pointing at the Sepolia endpoint.
+
+## 2026-09-09 — Two more invariants
+
+- Added `detect_share_price_crash` (assets drop sharply while supply holds — loss of funds, exploit, bad debt) and `detect_unbacked_mint` (supply grows while assets hold — shares minted without matching backing).
+- Both reuse the same overflow-safe `U1024` comparison as `detect_inflation`, wired into `graph_out` and the frontend alert copy.

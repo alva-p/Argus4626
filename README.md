@@ -37,21 +37,20 @@ Argus4626 applies the same event and state pipeline to heterogeneous vaults from
 flowchart LR
     B[Ethereum Mainnet] --> S[Substreams in Rust]
     S --> M[The Graph Market]
-    S --> W[Invariant watchdog]
+    M -.->|reusable module,<br/>not wired into the UI| P((validated on<br/>real blocks))
+
     B --> G[Standard EVM Subgraph]
     G --> ST[Subgraph Studio]
-    M --> D[Argus dashboard]
-    ST --> D
-    W --> D
+    ST --> D[Argus dashboard]
 ```
 
-The two Graph products have distinct roles:
+The two Graph products are parallel tracks off the same entry point, not one pipe — Subgraph Studio does not accept the Substreams-powered `graph_out` adapter today, so the dashboard queries the Standard EVM Subgraph directly:
 
 | Layer | Role |
 | --- | --- |
-| Substreams + The Graph Market | High-throughput block processing, stateful metrics, and reusable `EntityChanges` output. |
-| Standard EVM Subgraph + Subgraph Studio | Normalized GraphQL entities for the product UI and external consumers. |
-| Argus dashboard | A visual control plane for vault health, trends, and incidents. |
+| Substreams + The Graph Market | Reusable Rust watchdog: stateful metrics and `EntityChanges`, validated live against real blocks. Proves the bounty's Substreams module — not the dashboard's data source. |
+| Standard EVM Subgraph + Subgraph Studio | Normalized GraphQL entities, same schema, same invariant math (AssemblyScript). This is what the dashboard actually queries. |
+| Argus dashboard | A visual control plane for vault health, trends, and incidents, fed by Subgraph Studio. |
 
 ## Security signals
 
@@ -161,8 +160,6 @@ src/                 Substreams modules and invariant checks
 subgraph/            Studio schema, manifest, and mappings
 frontend/            Argus dashboard
 substreams.yaml      Package and module graph
-PLAN.md              Hackathon execution plan
-PROJECT_CONTEXT.md   Technical decisions and handoff
 ```
 
 ## Current status
@@ -184,8 +181,6 @@ PROJECT_CONTEXT.md   Technical decisions and handoff
 - [The Graph Market](https://thegraph.market/)
 - [Substreams documentation](https://docs.substreams.dev/)
 - [ERC-4626 specification](https://eips.ethereum.org/EIPS/eip-4626)
-- [Execution plan](./PLAN.md)
-- [Technical project context](./PROJECT_CONTEXT.md)
 
 ## License
 
