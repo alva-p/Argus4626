@@ -8,6 +8,10 @@ const ALERT_EXPLANATIONS: Record<string, string> = {
     "Share price jumped more than 5% while total supply stayed unchanged — assets grew without new deposits. This matches a donation/inflation pattern, not confirmed proof of an exploit.",
   LIQUIDITY_DRAIN_EVENT:
     "Withdrawals in the recent window exceeded 35% of available liquidity. Fast, large withdrawals can precede a bank-run or an attempt to drain the vault.",
+  SHARE_PRICE_CRASH_DETECTED:
+    "Share price dropped more than 5% while total supply stayed unchanged — assets shrank without a matching withdrawal. This matches a loss of funds, exploit, or bad debt, not confirmed proof of an exploit.",
+  UNBACKED_MINT_DETECTED:
+    "Share supply grew enough to move the share price more than 5% while total assets stayed unchanged — shares appear to have been minted without matching backing.",
 };
 
 function explain(alert: SecurityAlert): string {

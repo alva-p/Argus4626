@@ -473,6 +473,42 @@ fn graph_out(
             ));
         }
 
+        if invariants::detect_share_price_crash(previous, current).is_some() {
+            let tx_hash = events
+                .withdraws
+                .iter()
+                .find(|withdraw| withdraw.vault_address == vault)
+                .map(|withdraw| withdraw.evt_tx_hash.as_str())
+                .unwrap_or_default();
+            changes.push(security_alert(
+                &vault,
+                blk.number,
+                blk.timestamp().seconds,
+                tx_hash,
+                "CRITICAL",
+                "SHARE_PRICE_CRASH_DETECTED",
+                "Share price dropped by more than 5% while share supply stayed unchanged.",
+            ));
+        }
+
+        if invariants::detect_unbacked_mint(previous, current).is_some() {
+            let tx_hash = events
+                .transfers
+                .iter()
+                .find(|transfer| transfer.vault_address == vault)
+                .map(|transfer| transfer.evt_tx_hash.as_str())
+                .unwrap_or_default();
+            changes.push(security_alert(
+                &vault,
+                blk.number,
+                blk.timestamp().seconds,
+                tx_hash,
+                "CRITICAL",
+                "UNBACKED_MINT_DETECTED",
+                "Share supply increased by more than 5% in price impact while total assets stayed unchanged.",
+            ));
+        }
+
         if transition.withdrawal_activity {
             let withdrawn = withdrawal_window(&store, &vault, blk.timestamp().seconds);
             let available = store
