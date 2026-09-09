@@ -13,6 +13,7 @@ export function VaultTable({ rows }: { rows: Row[] }) {
   const [sortDesc, setSortDesc] = useState(true);
 
   const protocols = useMemo(() => Array.from(new Set(rows.map((r) => r.protocol))).sort(), [rows]);
+  const searchedAddress = /^0x[0-9a-fA-F]{40}$/.test(search.trim()) ? search.trim() : null;
 
   const filtered = useMemo(() => {
     const term = search.trim().toLowerCase();
@@ -23,7 +24,8 @@ export function VaultTable({ rows }: { rows: Row[] }) {
           !term ||
           r.name.toLowerCase().includes(term) ||
           r.protocol.toLowerCase().includes(term) ||
-          r.assetSymbol.toLowerCase().includes(term)
+          r.assetSymbol.toLowerCase().includes(term) ||
+          r.id.toLowerCase().includes(term)
       )
       .sort((a, b) => (sortDesc ? b.riskScore - a.riskScore : a.riskScore - b.riskScore));
   }, [rows, search, protocol, sortDesc]);
@@ -34,7 +36,7 @@ export function VaultTable({ rows }: { rows: Row[] }) {
         <input
           className="filter-input"
           type="text"
-          placeholder="Search vault, protocol or asset…"
+          placeholder="Search vault, protocol, asset, or paste any ERC-4626 address…"
           value={search}
           onChange={(e) => setSearch(e.target.value)}
         />
@@ -89,7 +91,12 @@ export function VaultTable({ rows }: { rows: Row[] }) {
                 </tr>
               );
             })}
-            {filtered.length === 0 && (
+            {filtered.length === 0 && searchedAddress && (
+              <tr><td colSpan={7} className="empty-row">
+                Not in the tracked list — <a className="vault-name" href={`/vault/${searchedAddress}`}>look it up live as any ERC-4626 vault →</a>
+              </td></tr>
+            )}
+            {filtered.length === 0 && !searchedAddress && (
               <tr><td colSpan={7} className="empty-row">No vaults match this filter.</td></tr>
             )}
           </tbody>
