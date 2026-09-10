@@ -53,6 +53,18 @@ export function ArgusIntro({ targetId }: { targetId: string }) {
     return () => ro.disconnect();
   }, []);
 
+  // Intentional re-entry only (sidebar brand click) — organic scroll-up never
+  // reopens it once retired, that's the point of the one-way lock above.
+  useEffect(() => {
+    const onReplay = () => {
+      enteredRef.current = false;
+      setEntered(false);
+      requestAnimationFrame(() => window.scrollTo({ top: 0, behavior: "smooth" }));
+    };
+    window.addEventListener("argus:replay-intro", onReplay);
+    return () => window.removeEventListener("argus:replay-intro", onReplay);
+  }, []);
+
   useEffect(() => {
     if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
     const id = setInterval(() => {

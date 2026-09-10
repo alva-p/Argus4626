@@ -1,6 +1,7 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import { useRouter } from "next/navigation";
 import { formatCompact, formatSharePrice, riskBand, shortAddress } from "@/lib/format";
 import { Sparkline } from "@/components/charts";
 import type { Vault } from "@/types";
@@ -8,6 +9,7 @@ import type { Vault } from "@/types";
 type Row = Vault & { riskScore: number };
 
 export function VaultTable({ rows }: { rows: Row[] }) {
+  const router = useRouter();
   const [search, setSearch] = useState("");
   const [protocol, setProtocol] = useState("all");
   const [sortDesc, setSortDesc] = useState(true);
@@ -29,6 +31,11 @@ export function VaultTable({ rows }: { rows: Row[] }) {
       )
       .sort((a, b) => (sortDesc ? b.riskScore - a.riskScore : a.riskScore - b.riskScore));
   }, [rows, search, protocol, sortDesc]);
+
+  const untracked = filtered.length === 0 && searchedAddress;
+  useEffect(() => {
+    if (untracked) router.push(`/vault/${searchedAddress}`);
+  }, [untracked, searchedAddress, router]);
 
   return (
     <div>
@@ -91,9 +98,9 @@ export function VaultTable({ rows }: { rows: Row[] }) {
                 </tr>
               );
             })}
-            {filtered.length === 0 && searchedAddress && (
+            {untracked && (
               <tr><td colSpan={7} className="empty-row">
-                Not in the tracked list — <a className="vault-name" href={`/vault/${searchedAddress}`}>look it up live as any ERC-4626 vault →</a>
+                Not in the tracked list — redirecting to a live lookup…
               </td></tr>
             )}
             {filtered.length === 0 && !searchedAddress && (

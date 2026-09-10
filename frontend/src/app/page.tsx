@@ -1,19 +1,14 @@
 import { getDashboardData } from "@/lib/graph";
 import { computeRiskScore, riskBand } from "@/lib/format";
+import { ALERT_CATALOG } from "@/lib/alerts";
 import { HealthDistribution, IncidentTimeline } from "@/components/charts";
 import { VaultTable } from "@/components/vault-table";
 import { ArgusIntro } from "@/components/argus/ArgusIntro";
+import { AppShell } from "@/components/argus/AppShell";
+import { TacticalRadar } from "@/components/argus/TacticalRadar";
 import { ScrollReveal } from "@/components/argus/ScrollReveal";
 import { NavScrollSpy } from "@/components/argus/NavScrollSpy";
 import type { SecurityAlert, Vault } from "@/types";
-
-const NAV = [
-  { href: "#overview", label: "Overview", icon: "M3 12l4-8h10l4 8-4 8H7z" },
-  { href: "#vaults", label: "Vault registry", icon: "M4 4h16v16H4zM4 10h16M10 10v10" },
-  { href: "#incidents", label: "Incident radar", icon: "M12 3l9 16H3z M12 9v5 M12 17h.01" },
-  { href: "#pipeline", label: "Data pipeline", icon: "M4 6h16M4 12h16M4 18h16" },
-  { href: "/vault/sepolia-demo", label: "Demo", icon: "M9 3h6M10 3v5l-5 9a2 2 0 001.7 3h10.6a2 2 0 001.7-3l-5-9V3" },
-];
 
 function ridge(alerts: SecurityAlert[], vault: Vault) {
   return computeRiskScore(alerts.filter((a) => a.vault.id === vault.id));
@@ -30,32 +25,7 @@ function Dashboard({ data }: { data: Awaited<ReturnType<typeof getDashboardData>
   const systemOk = criticalAlerts === 0;
 
   return (
-    <div className="app-shell" id="control-plane">
-      <aside className="sidebar">
-        <div className="brand">
-          <img className="brand-logo" src="/brand/argus4626-horizontal.png" alt="Argus4626" />
-          <p className="brand-tagline">See the vault before the risk sees you.</p>
-        </div>
-        <div className="nav-label">Workspace</div>
-        <nav className="nav">
-          {NAV.map((item, i) => (
-            <a key={item.href} href={item.href} style={{ animationDelay: `${i * 0.06}s` }}>
-              <span className="nav-index">{String(i + 1).padStart(2, "0")}</span>
-              <svg className="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6">
-                <path d={item.icon} />
-              </svg>
-              {item.label}
-              <span className="nav-spacer" />
-              {item.href === "#incidents" && criticalAlerts > 0 && (
-                <span className="nav-badge">{criticalAlerts}</span>
-              )}
-              <span className="nav-dot" />
-            </a>
-          ))}
-        </nav>
-      </aside>
-
-      <main className="main">
+    <AppShell criticalAlerts={criticalAlerts}>
         <header className="topbar">
           <span className="eyebrow">ARGUS / CONTROL PLANE</span>
           <div className="top-actions"><span className="live-pill"><span className="live" />LIVE</span></div>
@@ -72,7 +42,10 @@ function Dashboard({ data }: { data: Awaited<ReturnType<typeof getDashboardData>
           <section className="hero-compact" id="overview">
             <div className="kicker">ERC-4626 observability layer</div>
             <h1>Vault Intelligence</h1>
-            <p className="hero-copy">Real-time observability and risk detection across standardized ERC-4626 vaults.</p>
+            <p className="hero-copy">
+              Real-time observability and risk detection across standardized ERC-4626 vaults. {data.vaults.length} vaults are tracked
+              by default below — paste any other ERC-4626 address into the search box to pull it live.
+            </p>
           </section>
 
           <section className="metrics" aria-label="Network metrics">
@@ -100,6 +73,29 @@ function Dashboard({ data }: { data: Awaited<ReturnType<typeof getDashboardData>
 
           <section id="incidents">
             <div className="section-head"><h2 className="section-title">Incident Radar</h2><span className="section-meta">EVIDENCE-FIRST SIGNALS</span></div>
+
+            <div className="card" style={{ marginBottom: 20 }}>
+              <TacticalRadar vaults={data.vaults} alerts={data.alerts} />
+            </div>
+
+            <div className="card watch-card">
+              <div className="section-head"><h2 className="section-title">Argus watches every tracked vault for</h2><span className="section-meta">4 INVARIANTS</span></div>
+              <div className="watch-grid">
+                {ALERT_CATALOG.map((entry) => (
+                  <a className={`watch-item watch-${entry.severity}`} key={entry.type} href={entry.demoHref} title="View a real on-chain incident of this type">
+                    <div className="watch-icon">
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
+                        <path d={entry.icon} />
+                      </svg>
+                    </div>
+                    <div className="watch-label">{entry.label}</div>
+                    <div className="watch-desc">{entry.description}</div>
+                    <div className="watch-cta">VIEW LIVE INCIDENT →</div>
+                  </a>
+                ))}
+              </div>
+            </div>
+
             {data.alerts.length === 0 ? (
               <div className="empty">No security alerts in the indexed window.</div>
             ) : (
@@ -136,8 +132,7 @@ function Dashboard({ data }: { data: Awaited<ReturnType<typeof getDashboardData>
             <a href="https://x.com/pimmpi_" target="_blank" rel="noreferrer">TWITTER</a>
           </div>
         </div>
-      </main>
-    </div>
+    </AppShell>
   );
 }
 
